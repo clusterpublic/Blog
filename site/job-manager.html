@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Manager - Cluster Protocol</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <style>
+        ::-webkit-scrollbar {
+            width: 0.5rem;
+            height: 0.5rem;
+            background-color: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #404040;
+            border-radius: 0.25rem;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #525252;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+            color: #e5e5e5;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 120, 120, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(120, 120, 120, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 120, 120, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        /* Header styles are now in the modular component */
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+        
+        .page-subtitle {
+            color: #a3a3a3;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+        
+        .search-box, .filter-select {
+            padding: 1rem 1.25rem;
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            color: #e5e5e5;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 320px;
+        }
+        
+        .filter-select {
+            min-width: 150px;
+        }
+        
+        .search-box:focus, .filter-select:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(20, 20, 20, 0.8);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+        }
+        
+        .search-box::placeholder {
+            color: #737373;
+        }
+        
+        .btn {
+            padding: 1rem 2rem;
+            background: rgba(40, 40, 40, 0.8);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            background: rgba(50, 50, 50, 0.9);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(30, 30, 30, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(40, 40, 40, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        
+        .btn-danger {
+            background: rgba(60, 20, 20, 0.8);
+            border: 1px solid rgba(255, 100, 100, 0.2);
+        }
+        
+        .btn-danger:hover {
+            background: rgba(80, 30, 30, 0.9);
+            border-color: rgba(255, 100, 100, 0.3);
+        }
+        
+        .btn-success {
+            background: rgba(20, 60, 20, 0.8);
+            border: 1px solid rgba(100, 255, 100, 0.2);
+        }
+        
+        .btn-success:hover {
+            background: rgba(30, 80, 30, 0.9);
+            border-color: rgba(100, 255, 100, 0.3);
+        }
+        
+        .btn-small {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.85rem;
+        }
+        
+        .job-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+        
+        .job-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .job-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .job-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin: 0;
+            line-height: 1.4;
+        }
+        
+        .job-actions {
+            display: flex;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .job-card:hover .job-actions {
+            opacity: 1;
+        }
+        
+        .job-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .job-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+        
+        .badge-type {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .badge-role {
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .badge-location {
+            background: rgba(168, 85, 247, 0.2);
+            color: #c4b5fd;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        
+        .badge-inactive {
+            background: rgba(107, 114, 128, 0.2);
+            color: #9ca3af;
+            border: 1px solid rgba(107, 114, 128, 0.3);
+        }
+        
+        .job-description {
+            color: #a3a3a3;
+            line-height: 1.6;
+            margin: 0 0 1rem 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .job-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem;
+            color: #737373;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+        
+        .pagination-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            color: #e5e5e5;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .pagination-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination-btn.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border-color: #3b82f6;
+            color: #ffffff;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 2rem;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin: 0;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: #a3a3a3;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #a3a3a3;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            color: #e5e5e5;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(20, 20, 20, 0.8);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+        }
+        
+        .form-input::placeholder, .form-textarea::placeholder {
+            color: #737373;
+        }
+        
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #737373;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .empty-state-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #a3a3a3;
+            margin-bottom: 0.5rem;
+        }
+        
+        .empty-state-text {
+            margin-bottom: 2rem;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+            color: #a3a3a3;
+        }
+        
+        .spinner {
+            width: 2rem;
+            height: 2rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-container {
+                max-width: none;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .job-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .job-actions {
+                opacity: 1;
+            }
+            
+            .modal-content {
+                margin: 1rem;
+                width: calc(100% - 2rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header will be loaded by header-loader.js -->
+
+    <div class="container">
+        <h1 class="page-title">Job Manager</h1>
+        <p class="page-subtitle">Manage job postings and career opportunities</p>
+
+        <div class="controls">
+            <div class="filters">
+                <input type="text" class="search-box" id="searchInput" placeholder="Search jobs by role, location, or description...">
+                <select class="filter-select" id="typeFilter">
+                    <option value="">All Types</option>
+                    <option value="fulltime">Full-time</option>
+                    <option value="intern">Intern</option>
+                    <option value="advisory">Advisory</option>
+                    <option value="parttime">Part-time</option>
+                    <option value="contract">Contract</option>
+                </select>
+                <select class="filter-select" id="roleFilter">
+                    <option value="">All Roles</option>
+                    <option value="product">Product</option>
+                    <option value="design">Design</option>
+                    <option value="tech">Tech</option>
+                    <option value="management">Management</option>
+                    <option value="social">Social</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="sales">Sales</option>
+                </select>
+            </div>
+            <button class="btn" onclick="openCreateModal()">Create New Job</button>
+        </div>
+
+        <div id="jobContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading Jobs...
+            </div>
+        </div>
+
+        <div class="pagination" id="pagination" style="display: none;">
+            <!-- Pagination buttons will be generated here -->
+        </div>
+    </div>
+
+    <!-- Create/Edit Job Modal -->
+    <div class="modal" id="jobModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Create Job</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <form id="jobForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="jobRoleName">Role Name</label>
+                        <input type="text" class="form-input" id="jobRoleName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="jobLocation">Location</label>
+                        <input type="text" class="form-input" id="jobLocation" placeholder="e.g., Remote, San Francisco, New York" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="jobType">Type</label>
+                        <select class="form-select" id="jobType" required>
+                            <option value="">Select Type</option>
+                            <option value="fulltime">Full-time</option>
+                            <option value="intern">Intern</option>
+                            <option value="advisory">Advisory</option>
+                            <option value="parttime">Part-time</option>
+                            <option value="contract">Contract</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="jobRoleCategory">Role Category</label>
+                        <select class="form-select" id="jobRoleCategory" required>
+                            <option value="">Select Category</option>
+                            <option value="product">Product</option>
+                            <option value="design">Design</option>
+                            <option value="tech">Tech</option>
+                            <option value="management">Management</option>
+                            <option value="social">Social</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="sales">Sales</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="jobDescription">Description</label>
+                    <textarea class="form-textarea" id="jobDescription" placeholder="Describe the role, responsibilities, requirements, and benefits..." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="jobIsActive" checked> Active Job Posting
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="jobPassword">Password</label>
+                    <input type="password" class="form-input" id="jobPassword" required placeholder="Enter admin password">
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn" id="submitBtn">Create Job</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/components/header-loader.js"></script>
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentJobId = null;
+        let searchTimeout;
+
+        // Load jobs on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadJobs();
+            
+            // Setup search and filters
+            document.getElementById('searchInput').addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    currentPage = 1;
+                    loadJobs();
+                }, 300);
+            });
+            
+            document.getElementById('typeFilter').addEventListener('change', function() {
+                currentPage = 1;
+                loadJobs();
+            });
+            
+            document.getElementById('roleFilter').addEventListener('change', function() {
+                currentPage = 1;
+                loadJobs();
+            });
+        });
+
+        async function loadJobs() {
+            const searchQuery = document.getElementById('searchInput').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            const roleFilter = document.getElementById('roleFilter').value;
+            const container = document.getElementById('jobContainer');
+            
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading Jobs...
+                </div>
+            `;
+
+            try {
+                const params = new URLSearchParams({
+                    page: currentPage,
+                    per_page: 10
+                });
+                
+                if (searchQuery) params.append('search', searchQuery);
+                if (typeFilter) params.append('type', typeFilter);
+                if (roleFilter) params.append('role_category', roleFilter);
+
+                const response = await fetch(`/api/admin/jobs?${params}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayJobs(data.jobs);
+                    updatePagination(data.page, data.total_pages);
+                } else {
+                    throw new Error(data.error || 'Failed to load jobs');
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-title">Error Loading Jobs</div>
+                        <div class="empty-state-text">${error.message}</div>
+                        <button class="btn btn-primary" onclick="loadJobs()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        function displayJobs(jobs) {
+            const container = document.getElementById('jobContainer');
+            
+            if (jobs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💼</div>
+                        <div class="empty-state-title">No Jobs Found</div>
+                        <div class="empty-state-text">Create your first job posting to get started</div>
+                        <button class="btn btn-primary" onclick="openCreateModal()">Create Job</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const jobHTML = jobs.map(job => `
+                <div class="job-card ${!job.is_active ? 'opacity-60' : ''}">
+                    <div class="job-header">
+                        <h3 class="job-title">${escapeHtml(job.role_name)}</h3>
+                        <div class="job-actions">
+                            <button class="btn btn-secondary btn-small" onclick="editJob('${job._id}')">Edit</button>
+                            <button class="btn btn-small ${job.is_active ? 'btn-danger' : 'btn-success'}" onclick="toggleJobStatus('${job._id}', ${job.is_active})">
+                                ${job.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button class="btn btn-danger btn-small" onclick="deleteJob('${job._id}')">Delete</button>
+                        </div>
+                    </div>
+                    
+                    <div class="job-meta">
+                        <span class="job-badge badge-type">${job.type}</span>
+                        <span class="job-badge badge-role">${job.role_category}</span>
+                        <span class="job-badge badge-location">${escapeHtml(job.location)}</span>
+                        ${!job.is_active ? '<span class="job-badge badge-inactive">Inactive</span>' : ''}
+                    </div>
+                    
+                    <p class="job-description">${escapeHtml(job.description)}</p>
+                    
+                    <div class="job-footer">
+                        <span>Created: ${new Date(job.created_at).toLocaleDateString()}</span>
+                        <span>Updated: ${new Date(job.updated_at).toLocaleDateString()}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `<div class="job-grid">${jobHTML}</div>`;
+        }
+
+        function updatePagination(page, totalPages) {
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+
+            pagination.style.display = 'flex';
+            currentPage = page;
+            totalPages = totalPages;
+
+            let paginationHTML = '';
+
+            // Previous button
+            paginationHTML += `
+                <button class="pagination-btn" ${page === 1 ? 'disabled' : ''} onclick="changePage(${page - 1})">
+                    Previous
+                </button>
+            `;
+
+            // Page numbers
+            for (let i = Math.max(1, page - 2); i <= Math.min(totalPages, page + 2); i++) {
+                paginationHTML += `
+                    <button class="pagination-btn ${i === page ? 'active' : ''}" onclick="changePage(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            // Next button
+            paginationHTML += `
+                <button class="pagination-btn" ${page === totalPages ? 'disabled' : ''} onclick="changePage(${page + 1})">
+                    Next
+                </button>
+            `;
+
+            pagination.innerHTML = paginationHTML;
+        }
+
+        function changePage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                loadJobs();
+            }
+        }
+
+        function openCreateModal() {
+            currentJobId = null;
+            document.getElementById('modalTitle').textContent = 'Create Job';
+            document.getElementById('submitBtn').textContent = 'Create Job';
+            document.getElementById('jobForm').reset();
+            document.getElementById('jobIsActive').checked = true;
+            document.getElementById('jobModal').classList.add('show');
+        }
+
+        function editJob(jobId) {
+            currentJobId = jobId;
+            document.getElementById('modalTitle').textContent = 'Edit Job';
+            document.getElementById('submitBtn').textContent = 'Update Job';
+            
+            // Fetch job data
+            fetch(`/api/job/${jobId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.role_name) {
+                        document.getElementById('jobRoleName').value = data.role_name;
+                        document.getElementById('jobLocation').value = data.location;
+                        document.getElementById('jobType').value = data.type;
+                        document.getElementById('jobRoleCategory').value = data.role_category;
+                        document.getElementById('jobDescription').value = data.description;
+                        document.getElementById('jobIsActive').checked = data.is_active;
+                        document.getElementById('jobModal').classList.add('show');
+                    }
+                })
+                .catch(error => {
+                    alert('Error loading job: ' + error.message);
+                });
+        }
+
+        function toggleJobStatus(jobId, currentStatus) {
+            const password = prompt('Enter admin password to update job status:');
+            if (!password) return;
+            
+            const newStatus = !currentStatus;
+            const action = newStatus ? 'activate' : 'deactivate';
+            
+            if (confirm(`Are you sure you want to ${action} this job?`)) {
+                fetch(`/api/job/${jobId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        is_active: newStatus,
+                        password: password
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadJobs();
+                    } else {
+                        alert('Error updating job: ' + (data.message || data.error));
+                    }
+                })
+                .catch(error => {
+                    alert('Error updating job: ' + error.message);
+                });
+            }
+        }
+
+        function deleteJob(jobId) {
+            const password = prompt('Enter admin password to delete job:');
+            if (!password) return;
+            
+            if (confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+                fetch(`/api/job/${jobId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadJobs();
+                    } else {
+                        alert('Error deleting job: ' + (data.message || data.error));
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting job: ' + error.message);
+                });
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('jobModal').classList.remove('show');
+        }
+
+        document.getElementById('jobForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const roleName = document.getElementById('jobRoleName').value;
+            const location = document.getElementById('jobLocation').value;
+            const type = document.getElementById('jobType').value;
+            const roleCategory = document.getElementById('jobRoleCategory').value;
+            const description = document.getElementById('jobDescription').value;
+            const isActive = document.getElementById('jobIsActive').checked;
+            const password = document.getElementById('jobPassword').value;
+            const submitBtn = document.getElementById('submitBtn');
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+
+            try {
+                const url = currentJobId ? `/api/job/${currentJobId}` : '/api/job';
+                const method = currentJobId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        role_name: roleName,
+                        location: location,
+                        type: type,
+                        role_category: roleCategory,
+                        description: description,
+                        is_active: isActive,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    closeModal();
+                    loadJobs();
+                } else {
+                    throw new Error(data.error || 'Failed to save job');
+                }
+            } catch (error) {
+                alert('Error saving job: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = currentJobId ? 'Update Job' : 'Create Job';
+            }
+        });
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('jobModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

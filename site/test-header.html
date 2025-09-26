@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Header Test - Cluster Protocol</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #0a0a0a;
+            color: #e5e5e5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .test-content {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2rem;
+            border-radius: 0.5rem;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header will be loaded by header-loader.js -->
+    
+    <div class="container">
+        <h1>Header Loading Test</h1>
+        <div class="test-content">
+            <p>This page tests if the modular header loads correctly.</p>
+            <p>You should see a navigation header at the top of this page.</p>
+            <p>Check the browser console for any loading messages.</p>
+        </div>
+    </div>
+    
+    <script src="/components/header-loader.js"></script>
+    <script>
+        // Additional test script
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Test page loaded');
+            
+            // Check if header was loaded
+            setTimeout(() => {
+                const header = document.querySelector('#main-header');
+                if (header) {
+                    console.log('✅ Header loaded successfully!');
+                    console.log('Header element:', header);
+                } else {
+                    console.log('❌ Header not found');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

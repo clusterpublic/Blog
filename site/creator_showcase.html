@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator Showcase Manager - Cluster Protocol</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <style>
+        ::-webkit-scrollbar {
+            width: 0.5rem;
+            height: 0.5rem;
+            background-color: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #404040;
+            border-radius: 0.25rem;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #525252;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+            color: #e5e5e5;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 120, 120, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(120, 120, 120, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 120, 120, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        /* Header styles are now in the modular component */
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+        
+        .page-subtitle {
+            color: #a3a3a3;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 320px;
+            padding: 1rem 1.25rem;
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            color: #e5e5e5;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(20, 20, 20, 0.8);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+        }
+        
+        .search-box::placeholder {
+            color: #737373;
+        }
+        
+        .btn {
+            padding: 1rem 2rem;
+            background: rgba(40, 40, 40, 0.8);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            background: rgba(50, 50, 50, 0.9);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(30, 30, 30, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(40, 40, 40, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        
+        .btn-danger {
+            background: rgba(60, 20, 20, 0.8);
+            border: 1px solid rgba(255, 100, 100, 0.2);
+        }
+        
+        .btn-danger:hover {
+            background: rgba(80, 30, 30, 0.9);
+            border-color: rgba(255, 100, 100, 0.3);
+        }
+        
+        .btn-small {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.85rem;
+        }
+        
+        .add-showcase-section {
+            background: rgba(20, 20, 20, 0.4);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .add-showcase-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #a3a3a3;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            color: #e5e5e5;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(20, 20, 20, 0.8);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+        }
+        
+        .form-input::placeholder {
+            color: #737373;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .radio-item input[type="radio"] {
+            accent-color: #404040;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .stat-card {
+            background: rgba(20, 20, 20, 0.4);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            text-align: center;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.75rem;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-label {
+            color: #a3a3a3;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+        
+        .showcases-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .showcase-card {
+            background: rgba(20, 20, 20, 0.4);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            overflow: hidden;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
+        }
+        
+        .showcase-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .showcase-card:hover::before {
+            opacity: 1;
+        }
+        
+        .showcase-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+        
+        .showcase-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .showcase-content {
+            padding: 2rem;
+        }
+        
+        .showcase-creator {
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.75rem;
+            font-size: 1.2rem;
+        }
+        
+        .showcase-platform {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+        }
+        
+        .platform-instagram {
+            background: rgba(120, 120, 120, 0.2);
+            color: #a3a3a3;
+        }
+        
+        .platform-twitter {
+            background: rgba(120, 120, 120, 0.2);
+            color: #a3a3a3;
+        }
+        
+        .platform-youtube {
+            background: rgba(120, 120, 120, 0.2);
+            color: #a3a3a3;
+        }
+        
+        .showcase-actions {
+            padding: 1.5rem 2rem;
+            display: flex;
+            gap: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 3rem;
+        }
+        
+        .pagination button {
+            padding: 0.75rem 1.25rem;
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            color: #e5e5e5;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: rgba(40, 40, 40, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .pagination .active {
+            background: rgba(50, 50, 50, 0.9);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #a3a3a3;
+            font-size: 1.1rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 5rem 2rem;
+            color: #a3a3a3;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 1rem;
+            color: #ffffff;
+            font-size: 1.5rem;
+        }
+        
+        .error {
+            background: rgba(60, 20, 20, 0.6);
+            border: 1px solid rgba(255, 100, 100, 0.3);
+            color: #fca5a5;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .success {
+            background: rgba(20, 60, 20, 0.6);
+            border: 1px solid rgba(100, 255, 100, 0.3);
+            color: #6ee7b7;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 1200px) {
+            .showcases-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                min-width: auto;
+            }
+            
+            .showcases-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header will be loaded by header-loader.js -->
+    
+    <div class="container">
+        <h1 class="page-title">Creator Showcase Manager</h1>
+        <p class="page-subtitle">Manage creator showcases from Instagram, Twitter, and YouTube</p>
+        
+        <div class="add-showcase-section">
+            <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: white;">Add New Creator Showcase</h3>
+            
+            <div id="errorMessage" class="error hidden"></div>
+            <div id="successMessage" class="success hidden"></div>
+            
+            <div class="form-group">
+                <label class="form-label" for="creatorName">Creator Name</label>
+                <input type="text" id="creatorName" class="form-input" placeholder="Enter creator name">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="imageUrl">Image URL</label>
+                <input type="url" id="imageUrl" class="form-input" placeholder="https://example.com/image.jpg">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Platform</label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="platformInstagram" name="platform" value="instagram">
+                        <label for="platformInstagram">Instagram</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="platformTwitter" name="platform" value="twitter">
+                        <label for="platformTwitter">Twitter (X)</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="platformYoutube" name="platform" value="youtube">
+                        <label for="platformYoutube">YouTube</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="postUrl">Post URL</label>
+                <input type="url" id="postUrl" class="form-input" placeholder="Instagram: instagram.com/p/... or instagram.com/reel/... | Twitter: twitter.com/... or x.com/... | YouTube: youtube.com/watch?v=... or youtu.be/...">
+            </div>
+            
+            <button onclick="addShowcase()" class="btn">Add Creator Showcase</button>
+        </div>
+        
+        <div class="controls">
+            <input type="text" id="searchInput" class="search-box" placeholder="Search showcases by creator name or platform...">
+            <select id="platformFilter" class="form-input" style="width: auto; min-width: 150px;">
+                <option value="">All Platforms</option>
+                <option value="instagram">Instagram</option>
+                <option value="twitter">Twitter</option>
+                <option value="youtube">YouTube</option>
+            </select>
+            <button onclick="refreshShowcases()" class="btn btn-secondary">Refresh</button>
+            <a href="/" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
+        
+        <div class="stats" id="statsContainer">
+            <div class="stat-card">
+                <div class="stat-number" id="totalShowcases">-</div>
+                <div class="stat-label">Total Showcases</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="currentPage">-</div>
+                <div class="stat-label">Current Page</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalPages">-</div>
+                <div class="stat-label">Total Pages</div>
+            </div>
+        </div>
+        
+        <div id="loadingIndicator" class="loading">
+            <p>Loading showcases...</p>
+        </div>
+        
+        <div id="showcasesGrid" class="showcases-grid" style="display: none;">
+            <!-- Showcase cards will be inserted here -->
+        </div>
+        
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h3>No showcases found</h3>
+            <p>Add your first creator showcase to get started!</p>
+        </div>
+        
+        <div id="pagination" class="pagination" style="display: none;">
+            <!-- Pagination buttons will be inserted here -->
+        </div>
+    </div>
+    
+    <script src="/components/header-loader.js"></script>
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalShowcases = 0;
+        let showcasesPerPage = 12;
+        let searchTerm = '';
+        let platformFilter = '';
+        
+        // Load showcases on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadShowcases();
+            
+            // Setup search functionality
+            const searchInput = document.getElementById('searchInput');
+            const platformFilterSelect = document.getElementById('platformFilter');
+            let searchTimeout;
+            
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchTerm = this.value;
+                    currentPage = 1;
+                    loadShowcases();
+                }, 500);
+            });
+            
+            platformFilterSelect.addEventListener('change', function() {
+                platformFilter = this.value;
+                currentPage = 1;
+                loadShowcases();
+            });
+        });
+        
+        async function loadShowcases() {
+            try {
+                showLoading(true);
+                
+                const response = await fetch(`/api/get_all_creator_showcases?page=${currentPage}&per_page=${showcasesPerPage}&search=${encodeURIComponent(searchTerm)}&platform=${encodeURIComponent(platformFilter)}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                totalShowcases = data.total;
+                totalPages = data.total_pages;
+                currentPage = data.page;
+                
+                updateStats();
+                renderShowcases(data.showcases);
+                renderPagination();
+                
+            } catch (error) {
+                console.error('Error loading showcases:', error);
+                showError('Failed to load showcases. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('totalShowcases').textContent = totalShowcases;
+            document.getElementById('currentPage').textContent = currentPage;
+            document.getElementById('totalPages').textContent = totalPages;
+        }
+        
+        function renderShowcases(showcases) {
+            const showcasesGrid = document.getElementById('showcasesGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (showcases.length === 0) {
+                showcasesGrid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            showcasesGrid.style.display = 'grid';
+            
+            showcasesGrid.innerHTML = showcases.map(showcase => `
+                <div class="showcase-card">
+                    <img src="${showcase.image_url}" alt="${showcase.creator_name}" class="showcase-image">
+                    <div class="showcase-content">
+                        <div class="showcase-creator">${showcase.creator_name}</div>
+                        <div class="showcase-platform platform-${showcase.platform}">${showcase.platform}</div>
+                    </div>
+                    <div class="showcase-actions">
+                        <button onclick="viewPost('${showcase.post_url}', '${showcase.embed_post_url}')" class="btn btn-small btn-secondary">View Post</button>
+                        <button onclick="deleteShowcase('${showcase._id}')" class="btn btn-small btn-danger">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            pagination.style.display = 'flex';
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
+            
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            if (startPage > 1) {
+                paginationHTML += `<button onclick="changePage(1)">1</button>`;
+                if (startPage > 2) {
+                    paginationHTML += `<span>...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `<button onclick="changePage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHTML += `<span>...</span>`;
+                }
+                paginationHTML += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            // Next button
+            paginationHTML += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
+            
+            pagination.innerHTML = paginationHTML;
+        }
+        
+        function changePage(page) {
+            if (page >= 1 && page <= totalPages && page !== currentPage) {
+                currentPage = page;
+                loadShowcases();
+            }
+        }
+        
+        function refreshShowcases() {
+            currentPage = 1;
+            searchTerm = '';
+            platformFilter = '';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('platformFilter').value = '';
+            loadShowcases();
+        }
+        
+        function viewPost(postUrl, embedUrl) {
+            // Create popup with embed URL
+            const popup = window.open('', 'embedViewer', 'width=800,height=600,scrollbars=yes,resizable=yes');
+            popup.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Embed Viewer</title>
+                    <style>
+                        body { margin: 0; padding: 20px; background: #000; color: white; font-family: Arial, sans-serif; }
+                        .header { margin-bottom: 20px; }
+                        .embed-container { position: relative; width: 100%; height: 500px; }
+                        .embed-container iframe { width: 100%; height: 100%; border: none; }
+                        .url-info { margin-top: 20px; padding: 15px; background: #333; border-radius: 5px; }
+                        .url-info h3 { margin-top: 0; color: #1da1f2; }
+                        .url-link { color: #1da1f2; text-decoration: none; word-break: break-all; }
+                        .url-link:hover { text-decoration: underline; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2>Embed Viewer</h2>
+                        <p>Showing embedded content from the original post</p>
+                    </div>
+                    <div class="embed-container">
+                        <iframe src="${embedUrl}" allowfullscreen></iframe>
+                    </div>
+                    <div class="url-info">
+                        <h3>Original Post URL:</h3>
+                        <a href="${postUrl}" target="_blank" class="url-link">${postUrl}</a>
+                        <h3>Embed URL:</h3>
+                        <a href="${embedUrl}" target="_blank" class="url-link">${embedUrl}</a>
+                    </div>
+                </body>
+                </html>
+            `);
+            popup.document.close();
+        }
+        
+        async function addShowcase() {
+            const creatorName = document.getElementById('creatorName').value;
+            const imageUrl = document.getElementById('imageUrl').value;
+            const platform = document.querySelector('input[name="platform"]:checked');
+            const postUrl = document.getElementById('postUrl').value;
+            
+            if (!creatorName || !imageUrl || !platform || !postUrl) {
+                showError('Please fill in all fields');
+                return;
+            }
+            
+            // Ask for password
+            const password = prompt('Enter password to add creator showcase:');
+            if (!password) {
+                return; // User cancelled
+            }
+            
+            try {
+                showLoading(true);
+                
+                const response = await fetch('/api/add_creator_showcase', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        creator_name: creatorName,
+                        image_url: imageUrl,
+                        platform: platform.value,
+                        post_url: postUrl,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Creator showcase added successfully!');
+                    // Clear form
+                    document.getElementById('creatorName').value = '';
+                    document.getElementById('imageUrl').value = '';
+                    document.getElementById('postUrl').value = '';
+                    document.querySelectorAll('input[name="platform"]').forEach(radio => radio.checked = false);
+                    loadShowcases(); // Refresh the list
+                } else {
+                    showError('Error: ' + data.message);
+                }
+                
+            } catch (error) {
+                console.error('Error adding showcase:', error);
+                showError('Failed to add creator showcase. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        async function deleteShowcase(showcaseId) {
+            if (!confirm('Are you sure you want to delete this creator showcase?')) {
+                return;
+            }
+            
+            const password = prompt('Enter password to delete creator showcase:');
+            if (!password) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/delete_creator_showcase/${showcaseId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ password: password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Creator showcase deleted successfully!');
+                    loadShowcases(); // Refresh the list
+                } else {
+                    showError('Error: ' + data.message);
+                }
+                
+            } catch (error) {
+                console.error('Error deleting showcase:', error);
+                showError('Failed to delete creator showcase. Please try again.');
+            }
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+            document.getElementById('showcasesGrid').style.display = show ? 'none' : 'grid';
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                successDiv.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

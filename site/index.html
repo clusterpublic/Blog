@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cluster Protocol - Management Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <style>
+        ::-webkit-scrollbar {
+            width: 0.5rem;
+            height: 0.5rem;
+            background-color: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #404040;
+            border-radius: 0.25rem;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #525252;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+            color: #e5e5e5;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 120, 120, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(120, 120, 120, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 120, 120, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .header {
+            background: rgba(20, 20, 20, 0.4);
+            padding: 2rem 2rem 1.5rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-decoration: none;
+            letter-spacing: -0.02em;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: #a3a3a3;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+        
+        .hero-section {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: #a3a3a3;
+            font-weight: 300;
+            margin-bottom: 3rem;
+        }
+        
+        .search-container {
+            max-width: 600px;
+            margin: 0 auto 4rem auto;
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 1.2rem 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(20px);
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+        
+        .search-input::placeholder {
+            color: #666;
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 10;
+            display: none;
+        }
+        
+        .search-result {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .search-result:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .search-result:last-child {
+            border-bottom: none;
+        }
+        
+        .result-title {
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .result-description {
+            color: #a3a3a3;
+            font-size: 0.9rem;
+        }
+        
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .tool-card {
+            background: rgba(20, 20, 20, 0.4);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+            transition: all 0.4s ease;
+            text-decoration: none;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .tool-card:hover::before {
+            opacity: 1;
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tool-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .tool-icon {
+            font-size: 2.5rem;
+            margin-right: 1rem;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.1));
+        }
+        
+        .tool-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin: 0;
+        }
+        
+        .tool-description {
+            color: #a3a3a3;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            letter-spacing: 0.01em;
+        }
+        
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-links {
+                gap: 1rem;
+            }
+            
+            .nav-link {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header will be loaded by header-loader.js -->
+    
+    <div class="container">
+        <div class="hero-section">
+            <h1 class="hero-title">Cluster Protocol</h1>
+            <p class="hero-subtitle">Management Dashboard</p>
+            
+            <div class="search-container">
+                <input type="text" class="search-input" id="toolSearch" placeholder="Search tools...">
+                <div class="search-results" id="searchResults"></div>
+            </div>
+        </div>
+        
+        <div class="tools-grid">
+            <a href="/manager" class="tool-card" data-tool="blog">
+                <div class="tool-header">
+                    <div class="tool-icon">📝</div>
+                    <h3 class="tool-title">Blog Manager</h3>
+                </div>
+                <p class="tool-description">
+                    Create, edit, and manage your blog posts with our advanced editor.
+                </p>
+            </a>
+            
+            <a href="/faq-manager" class="tool-card" data-tool="faq">
+                <div class="tool-header">
+                    <div class="tool-icon">❓</div>
+                    <h3 class="tool-title">FAQ Manager</h3>
+                </div>
+                <p class="tool-description">
+                    Manage frequently asked questions with automatic positioning.
+                </p>
+            </a>
+            
+            <a href="/job-manager" class="tool-card" data-tool="job">
+                <div class="tool-header">
+                    <div class="tool-icon">💼</div>
+                    <h3 class="tool-title">Job Manager</h3>
+                </div>
+                <p class="tool-description">
+                    Post and manage job opportunities with detailed information.
+                </p>
+            </a>
+            
+            <a href="/creator_showcase" class="tool-card" data-tool="creator">
+                <div class="tool-header">
+                    <div class="tool-icon">⭐</div>
+                    <h3 class="tool-title">Creator Showcase</h3>
+                </div>
+                <p class="tool-description">
+                    Showcase creators from Instagram, Twitter, and YouTube.
+                </p>
+            </a>
+            
+            <a href="/tweets" class="tool-card" data-tool="tweet">
+                <div class="tool-header">
+                    <div class="tool-icon">🐦</div>
+                    <h3 class="tool-title">Tweets Manager</h3>
+                </div>
+                <p class="tool-description">
+                    Import and manage tweets from Twitter/X.
+                </p>
+            </a>
+        </div>
+    </div>
+    
+    <script src="/components/header-loader.js"></script>
+    <script>
+        const tools = [
+            {
+                name: 'Blog Manager',
+                description: 'Create, edit, and manage your blog posts with our advanced editor.',
+                url: '/manager',
+                keywords: ['blog', 'post', 'article', 'content', 'writing', 'editor']
+            },
+            {
+                name: 'FAQ Manager',
+                description: 'Manage frequently asked questions with automatic positioning.',
+                url: '/faq-manager',
+                keywords: ['faq', 'question', 'answer', 'help', 'support', 'knowledge']
+            },
+            {
+                name: 'Job Manager',
+                description: 'Post and manage job opportunities with detailed information.',
+                url: '/job-manager',
+                keywords: ['job', 'career', 'hiring', 'employment', 'position', 'work']
+            },
+            {
+                name: 'Creator Showcase',
+                description: 'Showcase creators from Instagram, Twitter, and YouTube.',
+                url: '/creator_showcase',
+                keywords: ['creator', 'showcase', 'instagram', 'twitter', 'youtube', 'social']
+            },
+            {
+                name: 'Tweets Manager',
+                description: 'Import and manage tweets from Twitter/X.',
+                url: '/tweets',
+                keywords: ['tweet', 'twitter', 'social', 'media', 'post', 'x']
+            }
+        ];
+        
+        const searchInput = document.getElementById('toolSearch');
+        const searchResults = document.getElementById('searchResults');
+        
+        function searchTools(query) {
+            if (!query.trim()) {
+                searchResults.style.display = 'none';
+                return;
+            }
+            
+            const results = tools.filter(tool => 
+                tool.name.toLowerCase().includes(query.toLowerCase()) ||
+                tool.description.toLowerCase().includes(query.toLowerCase()) ||
+                tool.keywords.some(keyword => keyword.toLowerCase().includes(query.toLowerCase()))
+            );
+            
+            displayResults(results);
+        }
+        
+        function displayResults(results) {
+            if (results.length === 0) {
+                searchResults.innerHTML = '<div class="search-result"><div class="result-title">No tools found</div></div>';
+            } else {
+                searchResults.innerHTML = results.map(tool => `
+                    <div class="search-result" onclick="window.location.href='${tool.url}'">
+                        <div class="result-title">${tool.name}</div>
+                        <div class="result-description">${tool.description}</div>
+                    </div>
+                `).join('');
+            }
+            
+            searchResults.style.display = 'block';
+        }
+        
+        searchInput.addEventListener('input', (e) => {
+            searchTools(e.target.value);
+        });
+        
+        searchInput.addEventListener('focus', () => {
+            if (searchInput.value.trim()) {
+                searchResults.style.display = 'block';
+            }
+        });
+        
+        // Hide results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                searchResults.style.display = 'none';
+            }
+        });
+        
+        // Allow Enter key to go to first result
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const firstResult = searchResults.querySelector('.search-result');
+                if (firstResult) {
+                    firstResult.click();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

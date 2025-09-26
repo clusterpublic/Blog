@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Editor - Cluster Protocol</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <style>
+        ::-webkit-scrollbar {
+            width: 0.5rem;
+            height: 0.5rem;
+            background-color: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #404040;
+            border-radius: 0.25rem;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #525252;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+            color: #e5e5e5;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 120, 120, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(120, 120, 120, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 120, 120, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .header {
+            background: rgba(20, 20, 20, 0.4);
+            padding: 2rem 2rem 1.5rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.02), transparent);
+            pointer-events: none;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            letter-spacing: -0.02em;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            min-height: calc(100vh - 100px);
+        }
+        
+        .editor-panel {
+            background: rgba(20, 20, 20, 0.4);
+            border-radius: 1rem;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .editor-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .preview-panel {
+            background: rgba(20, 20, 20, 0.4);
+            border-radius: 1rem;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .preview-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .panel-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #a3a3a3;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            color: #e5e5e5;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(20, 20, 20, 0.8);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+        }
+        
+        .form-input::placeholder {
+            color: #737373;
+        }
+        
+        .form-textarea {
+            min-height: 300px;
+            resize: vertical;
+        }
+        
+        .formatting-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(20, 20, 20, 0.6);
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .format-btn {
+            padding: 0.75rem 1.25rem;
+            background: rgba(40, 40, 40, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            color: #ffffff;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .format-btn:hover {
+            background: rgba(50, 50, 50, 0.9);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .format-btn.active {
+            background: rgba(60, 60, 60, 0.9);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn {
+            padding: 1rem 2rem;
+            background: rgba(40, 40, 40, 0.8);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            margin-right: 1rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            background: rgba(50, 50, 50, 0.9);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(30, 30, 30, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(40, 40, 40, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        
+        .btn-danger {
+            background: rgba(60, 20, 20, 0.8);
+            border: 1px solid rgba(255, 100, 100, 0.2);
+        }
+        
+        .btn-danger:hover {
+            background: rgba(80, 30, 30, 0.9);
+            border-color: rgba(255, 100, 100, 0.3);
+        }
+        
+        .preview-frame {
+            width: 100%;
+            height: 70vh;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            background: white;
+            overflow: auto;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .preview-content {
+            padding: 2rem;
+            color: #333;
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+        }
+        
+        .preview-content h1, .preview-content h2, .preview-content h3, 
+        .preview-content h4, .preview-content h5, .preview-content h6 {
+            color: #333;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .preview-content h1 { font-size: 2rem; }
+        .preview-content h2 { font-size: 1.5rem; }
+        .preview-content h3 { font-size: 1.25rem; }
+        
+        .preview-content p {
+            margin-bottom: 1rem;
+        }
+        
+        .preview-content strong {
+            font-weight: 700;
+        }
+        
+        .preview-content em {
+            font-style: italic;
+        }
+        
+        .preview-content u {
+            text-decoration: underline;
+        }
+        
+        .preview-content a {
+            color: #404040;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .preview-content a:hover {
+            text-decoration: underline;
+        }
+        
+        .preview-content blockquote {
+            border-left: 4px solid #404040;
+            margin: 1rem 0;
+            padding-left: 1rem;
+            font-style: italic;
+            color: #666;
+        }
+        
+        .preview-content pre {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        
+        .preview-content code {
+            background: #f5f5f5;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .preview-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .status-draft {
+            background-color: #a3a3a3;
+        }
+        
+        .status-published {
+            background-color: #525252;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #a3a3a3;
+        }
+        
+        .error {
+            background: rgba(60, 20, 20, 0.6);
+            border: 1px solid rgba(255, 100, 100, 0.3);
+            color: #fca5a5;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .success {
+            background: rgba(20, 60, 20, 0.6);
+            border: 1px solid rgba(100, 255, 100, 0.3);
+            color: #6ee7b7;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                padding: 1.5rem;
+            }
+            
+            .preview-frame {
+                height: 50vh;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .header-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .formatting-toolbar {
+                justify-content: center;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Blog Editor</h1>
+        <div class="header-actions">
+            <a href="/manager" class="btn btn-secondary">← Back to Manager</a>
+            <button onclick="publishBlog()" class="btn">Publish Blog</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="editor-panel">
+            <div class="panel-title">
+                <span class="status-indicator status-draft"></span>
+                Editor
+            </div>
+            
+            <div id="errorMessage" class="error hidden"></div>
+            <div id="successMessage" class="success hidden"></div>
+            
+            <div class="form-group">
+                <label class="form-label" for="blogTitle">Blog Title</label>
+                <input type="text" id="blogTitle" class="form-input" placeholder="Enter your blog title...">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="blogDescription">Short Description</label>
+                <input type="text" id="blogDescription" class="form-input" placeholder="Enter a 20-30 word description...">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="blogThumbnail">Thumbnail URL</label>
+                <input type="text" id="blogThumbnail" class="form-input" placeholder="Enter thumbnail image URL...">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Content</label>
+                <div class="formatting-toolbar">
+                    <button class="format-btn" onclick="applyFormatting('bold')">Bold</button>
+                    <button class="format-btn" onclick="applyFormatting('italic')">Italic</button>
+                    <button class="format-btn" onclick="applyFormatting('underline')">Underline</button>
+                    <button class="format-btn" onclick="applyFormatting('heading')">Heading</button>
+                    <button class="format-btn" onclick="applyFormatting('link')">Link</button>
+                    <button class="format-btn" onclick="applyFormatting('code')">Code</button>
+                    <button class="format-btn" onclick="applyFormatting('quote')">Quote</button>
+                    <button class="format-btn" onclick="applyFormatting('image')">Image</button>
+                </div>
+                <textarea id="blogContent" class="form-input form-textarea" placeholder="Write your blog content here..." oninput="updatePreview()"></textarea>
+            </div>
+        </div>
+        
+        <div class="preview-panel">
+            <div class="panel-title">
+                <span class="status-indicator status-draft"></span>
+                Live Preview
+            </div>
+            <div class="preview-frame">
+                <div id="previewContent" class="preview-content">
+                    <h2>Your blog preview will appear here...</h2>
+                    <p>Start typing in the editor to see your content rendered in real-time.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentBlogId = null;
+        let isEditing = false;
+        let imageDataArray = [];
+        
+        // Check if we're editing an existing blog
+        document.addEventListener('DOMContentLoaded', function() {
+            const pathParts = window.location.pathname.split('/');
+            if (pathParts.length > 2 && pathParts[1] === 'editor') {
+                currentBlogId = pathParts[2];
+                isEditing = true;
+                loadBlogForEdit();
+            }
+        });
+        
+        async function loadBlogForEdit() {
+            try {
+                showLoading(true);
+                const response = await fetch(`/api/get_blog_for_edit/${currentBlogId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const blog = data.blog;
+                    document.getElementById('blogTitle').value = blog.title || '';
+                    document.getElementById('blogDescription').value = blog.description || '';
+                    document.getElementById('blogThumbnail').value = blog.thumbnail || '';
+                    document.getElementById('blogContent').value = blog.content || '';
+                    
+                    updatePreview();
+                    showSuccess('Blog loaded for editing');
+                } else {
+                    showError('Failed to load blog: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error loading blog:', error);
+                showError('Failed to load blog. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function applyFormatting(format) {
+            const textarea = document.getElementById('blogContent');
+            const selectedText = getSelectedText(textarea);
+            
+            if (format === 'bold' || format === 'italic' || format === 'underline' || 
+                format === 'heading' || format === 'code' || format === 'quote') {
+                insertFormatting(textarea, format, selectedText);
+            } else if (format === 'link') {
+                insertLinkFormatting(textarea, selectedText);
+            } else if (format === 'image') {
+                insertImageFormatting(textarea, selectedText);
+            }
+            
+            updatePreview();
+        }
+        
+        function insertFormatting(editor, format, selectedText) {
+            const startPos = editor.selectionStart;
+            const endPos = editor.selectionEnd;
+            const textBefore = editor.value.substring(0, startPos);
+            const textAfter = editor.value.substring(endPos, editor.value.length);
+            
+            let formattedText = '';
+            switch (format) {
+                case 'bold':
+                    formattedText = '**' + selectedText + '**';
+                    break;
+                case 'italic':
+                    formattedText = '*' + selectedText + '*';
+                    break;
+                case 'underline':
+                    formattedText = '__' + selectedText + '__';
+                    break;
+                case 'heading':
+                    formattedText = '##' + selectedText + '##';
+                    break;
+                case 'code':
+                    formattedText = '```' + selectedText + '```';
+                    break;
+                case 'quote':
+                    formattedText = '````' + selectedText + '````';
+                    break;
+            }
+            
+            editor.value = textBefore + formattedText + textAfter;
+            editor.focus();
+            editor.setSelectionRange(startPos + formattedText.length, startPos + formattedText.length);
+        }
+        
+        function insertLinkFormatting(editor, selectedText) {
+            const linkUrl = prompt("Enter Link URL:");
+            const linkText = prompt("Enter Link Text:", selectedText);
+            
+            if (linkUrl) {
+                const startPos = editor.selectionStart;
+                const endPos = editor.selectionEnd;
+                const textBefore = editor.value.substring(0, startPos);
+                const textAfter = editor.value.substring(endPos, editor.value.length);
+                const linkMarkdown = `[${linkText}](${linkUrl})`;
+                
+                editor.value = textBefore + linkMarkdown + textAfter;
+                editor.focus();
+                editor.setSelectionRange(startPos + linkMarkdown.length, startPos + linkMarkdown.length);
+            }
+        }
+        
+        function insertImageFormatting(editor, selectedText) {
+            const imageUrl = prompt("Enter Image URL:");
+            const altText = prompt("Enter Alt Text:", selectedText);
+            
+            if (imageUrl) {
+                const startPos = editor.selectionStart;
+                const endPos = editor.selectionEnd;
+                const textBefore = editor.value.substring(0, startPos);
+                const textAfter = editor.value.substring(endPos, editor.value.length);
+                const imageMarkdown = `!{${altText}}(${imageUrl})`;
+                
+                editor.value = textBefore + imageMarkdown + textAfter;
+                editor.focus();
+                editor.setSelectionRange(startPos + imageMarkdown.length, startPos + imageMarkdown.length);
+            }
+        }
+        
+        function getSelectedText(editor) {
+            const startPos = editor.selectionStart;
+            const endPos = editor.selectionEnd;
+            return editor.value.substring(startPos, endPos);
+        }
+        
+        function updatePreview() {
+            const content = document.getElementById('blogContent').value;
+            const title = document.getElementById('blogTitle').value;
+            const description = document.getElementById('blogDescription').value;
+            
+            let previewHTML = '';
+            
+            if (title) {
+                previewHTML += `<h1>${escapeHtml(title)}</h1>`;
+            }
+            
+            if (description) {
+                previewHTML += `<p style="color: #666; font-style: italic; font-size: 1.1rem;">${escapeHtml(description)}</p>`;
+            }
+            
+            if (content) {
+                previewHTML += processMarkdown(content);
+            }
+            
+            if (!previewHTML) {
+                previewHTML = '<h2>Your blog preview will appear here...</h2><p>Start typing in the editor to see your content rendered in real-time.</p>';
+            }
+            
+            document.getElementById('previewContent').innerHTML = previewHTML;
+        }
+        
+        function processMarkdown(text) {
+            // Escape HTML first
+            text = escapeHtml(text);
+            
+            // Process markdown
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            text = text.replace(/__(.*?)__/g, '<u>$1</u>');
+            text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+            text = text.replace(/!{([^}]+)}\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0;">');
+            text = text.replace(/````(.*?)````/gs, '<blockquote>$1</blockquote>');
+            text = text.replace(/```(.*?)```/gs, '<pre><code>$1</code></pre>');
+            text = text.replace(/##(.*?)##/g, '<h2>$1</h2>');
+            text = text.replace(/\n/g, '<br>');
+            
+            return text;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        
+        async function publishBlog() {
+            const blogData = getBlogData();
+            
+            if (!blogData.title || !blogData.description || !blogData.thumbnail || !blogData.content) {
+                showError('Please fill in all fields (title, description, thumbnail, and content) to publish.');
+                return;
+            }
+            
+            // Ask for password
+            const password = prompt('Enter password to publish blog:');
+            if (!password) {
+                return; // User cancelled
+            }
+            
+            try {
+                showLoading(true);
+                
+                if (isEditing) {
+                    // Update existing blog
+                    const response = await fetch(`/api/update_blog/${currentBlogId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            ...blogData,
+                            password: password
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showSuccess('Blog updated successfully!');
+                        // Redirect to manager after successful update
+                        setTimeout(() => {
+                            window.location.href = '/manager';
+                        }, 1000);
+                    } else {
+                        showError('Error: ' + data.message);
+                    }
+                } else {
+                    // Create new blog
+                    const response = await fetch('/upload_blog', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            ...blogData,
+                            password: password
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showSuccess('Blog published successfully!');
+                        // Redirect to manager after successful creation
+                        setTimeout(() => {
+                            window.location.href = '/manager';
+                        }, 200);
+                    } else {
+                        showError('Error: ' + data.message);
+                    }
+                }
+            } catch (error) {
+                console.error('Error publishing blog:', error);
+                showError('Failed to publish blog. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function getBlogData() {
+            return {
+                title: document.getElementById('blogTitle').value,
+                description: document.getElementById('blogDescription').value,
+                thumbnail: document.getElementById('blogThumbnail').value,
+                content: document.getElementById('blogContent').value
+            };
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                successDiv.classList.add('hidden');
+            }, 3000);
+        }
+        
+        function showLoading(show) {
+            // You can implement a loading indicator here
+            console.log('Loading:', show);
+        }
+        
+    </script>
+</body>
+</html>

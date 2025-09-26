@@ -1,0 +1,104 @@
+<!-- Modular Header Component -->
+<header class="header" id="main-header">
+    <div class="header-content">
+        <a href="/" class="logo">Cluster Protocol</a>
+        <nav class="nav-links">
+            <a href="/" class="nav-link" data-page="home">Home</a>
+            <a href="/manager" class="nav-link" data-page="blog">Blog Manager</a>
+            <a href="/faq-manager" class="nav-link" data-page="faq">FAQ Manager</a>
+            <a href="/job-manager" class="nav-link" data-page="job">Job Manager</a>
+            <a href="/creator_showcase" class="nav-link" data-page="creator">Creator Showcase</a>
+            <a href="/tweets" class="nav-link" data-page="tweets">Tweets</a>
+        </nav>
+    </div>
+</header>
+
+<style>
+.header {
+    background: rgba(20, 20, 20, 0.4);
+    padding: 2rem 2rem 1.5rem 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-decoration: none;
+    letter-spacing: -0.02em;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.nav-link {
+    color: #a3a3a3;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.3s ease;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+}
+
+.nav-link:hover, .nav-link.active {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 768px) {
+    .header {
+        padding: 1rem;
+    }
+    
+    .nav-links {
+        gap: 1rem;
+    }
+    
+    .nav-link {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+    }
+}
+</style>
+
+<script>
+// Auto-detect current page and set active state
+document.addEventListener('DOMContentLoaded', function() {
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    // Remove active class from all links
+    navLinks.forEach(link => link.classList.remove('active'));
+    
+    // Set active class based on current path
+    if (currentPath === '/' || currentPath === '/index.html') {
+        document.querySelector('[data-page="home"]').classList.add('active');
+    } else if (currentPath.includes('/manager')) {
+        document.querySelector('[data-page="blog"]').classList.add('active');
+    } else if (currentPath.includes('/faq-manager')) {
+        document.querySelector('[data-page="faq"]').classList.add('active');
+    } else if (currentPath.includes('/job-manager')) {
+        document.querySelector('[data-page="job"]').classList.add('active');
+    } else if (currentPath.includes('/creator_showcase')) {
+        document.querySelector('[data-page="creator"]').classList.add('active');
+    } else if (currentPath.includes('/tweets')) {
+        document.querySelector('[data-page="tweets"]').classList.add('active');
+    }
+});
+</script>

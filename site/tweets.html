@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tweets Manager - Cluster Protocol</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <style>
+        ::-webkit-scrollbar {
+            width: 0.5rem;
+            height: 0.5rem;
+            background-color: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #404040;
+            border-radius: 0.25rem;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #525252;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+            color: #e5e5e5;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 120, 120, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(120, 120, 120, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 120, 120, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        /* Header styles are now in the modular component */
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 320px;
+            padding: 1rem 1.25rem;
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            color: #e5e5e5;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(20, 20, 20, 0.8);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+        }
+        
+        .search-box::placeholder {
+            color: #737373;
+        }
+        
+        .btn {
+            padding: 1rem 2rem;
+            background: rgba(40, 40, 40, 0.8);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            background: rgba(50, 50, 50, 0.9);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(30, 30, 30, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(40, 40, 40, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        
+        .btn-danger {
+            background: rgba(60, 20, 20, 0.8);
+            border: 1px solid rgba(255, 100, 100, 0.2);
+        }
+        
+        .btn-danger:hover {
+            background: rgba(80, 30, 30, 0.9);
+            border-color: rgba(255, 100, 100, 0.3);
+        }
+        
+        .btn-small {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.85rem;
+        }
+        
+        .add-tweet-section {
+            background: rgba(20, 20, 20, 0.4);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .add-tweet-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #a3a3a3;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            color: #e5e5e5;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(20, 20, 20, 0.8);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+        }
+        
+        .form-input::placeholder {
+            color: #737373;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .radio-item input[type="radio"] {
+            accent-color: #404040;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .stat-card {
+            background: rgba(20, 20, 20, 0.4);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            text-align: center;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.75rem;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-label {
+            color: #a3a3a3;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+        
+        .tweets-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .tweet-card {
+            background: rgba(20, 20, 20, 0.4);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            overflow: hidden;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
+        }
+        
+        .tweet-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .tweet-card:hover::before {
+            opacity: 1;
+        }
+        
+        .tweet-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tweet-header {
+            padding: 1.5rem 2rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .tweet-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .tweet-author {
+            flex: 1;
+        }
+        
+        .tweet-author-name {
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.25rem;
+            font-size: 1.1rem;
+        }
+        
+        .tweet-author-username {
+            color: #a3a3a3;
+            font-size: 0.9rem;
+        }
+        
+        .tweet-type-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        .tweet-type-tweet {
+            background: rgba(120, 120, 120, 0.2);
+            color: #a3a3a3;
+        }
+        
+        .tweet-type-space {
+            background: rgba(120, 120, 120, 0.2);
+            color: #a3a3a3;
+        }
+        
+        .tweet-type-announcement {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+        
+        .tweet-type-partnership {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+        
+        .tweet-type-researches {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+        }
+        
+        .tweet-type-amas {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+        
+        .tweet-type-important_announcement {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+        
+        .tweet-type-podcast {
+            background: rgba(236, 72, 153, 0.2);
+            color: #f472b6;
+        }
+        
+        .tweet-content {
+            padding: 1rem 2rem 1.5rem;
+        }
+        
+        .tweet-text {
+            color: #ffffff;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+        
+        .tweet-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .tweet-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 0.75rem;
+        }
+        
+        .tweet-stats {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1rem 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.9rem;
+            color: #a3a3a3;
+        }
+        
+        .tweet-actions {
+            padding: 1.5rem 2rem;
+            display: flex;
+            gap: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 3rem;
+        }
+        
+        .pagination button {
+            padding: 0.75rem 1.25rem;
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            color: #e5e5e5;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: rgba(40, 40, 40, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .pagination .active {
+            background: rgba(50, 50, 50, 0.9);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #a3a3a3;
+            font-size: 1.1rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 5rem 2rem;
+            color: #a3a3a3;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 1rem;
+            color: #ffffff;
+            font-size: 1.5rem;
+        }
+        
+        .error {
+            background: rgba(60, 20, 20, 0.6);
+            border: 1px solid rgba(255, 100, 100, 0.3);
+            color: #fca5a5;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .success {
+            background: rgba(20, 60, 20, 0.6);
+            border: 1px solid rgba(100, 255, 100, 0.3);
+            color: #6ee7b7;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .validation-message {
+            color: #f87171;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+        
+        .validation-message.valid {
+            color: #34d399;
+        }
+        
+        .validation-message.invalid {
+            color: #f87171;
+        }
+        
+        @media (max-width: 1200px) {
+            .tweets-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                min-width: auto;
+            }
+            
+            .tweets-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header will be loaded by header-loader.js -->
+    
+    <div class="container">
+        <div class="add-tweet-section">
+            <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: white;">Add New Tweet</h3>
+            
+            <div id="errorMessage" class="error hidden"></div>
+            <div id="successMessage" class="success hidden"></div>
+            
+            <div class="form-group">
+                <label class="form-label" for="tweetUrl">Tweet URL</label>
+                <input type="url" id="tweetUrl" class="form-input" placeholder="https://twitter.com/username/status/1234567890">
+                <div id="urlValidationMessage" class="validation-message" style="display: none; margin-top: 0.5rem; font-size: 0.85rem;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="tweetType">Content Type</label>
+                <select id="tweetType" class="form-input" style="width: 100%;">
+                    <option value="tweet">Tweet</option>
+                    <option value="space">Space</option>
+                    <option value="announcement">Announcement</option>
+                    <option value="partnership">Partnership</option>
+                    <option value="researches">Researches</option>
+                    <option value="amas">AMAs</option>
+                    <option value="important_announcement">Important Announcement</option>
+                    <option value="podcast">Podcast</option>
+                </select>
+            </div>
+            
+            <button onclick="addTweet()" class="btn">Add Tweet</button>
+        </div>
+        
+        <div class="controls">
+            <input type="text" id="searchInput" class="search-box" placeholder="Search tweets by content, author, or ID...">
+            <select id="typeFilter" class="form-input" style="width: auto; min-width: 200px;">
+                <option value="">All Types</option>
+                <option value="tweet">Tweets</option>
+                <option value="space">Spaces</option>
+                <option value="announcement">Announcements</option>
+                <option value="partnership">Partnerships</option>
+                <option value="researches">Researches</option>
+                <option value="amas">AMAs</option>
+                <option value="important_announcement">Important Announcements</option>
+                <option value="podcast">Podcasts</option>
+            </select>
+            <button onclick="refreshTweets()" class="btn btn-secondary">Refresh</button>
+            <a href="/" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
+        
+        <div class="stats" id="statsContainer">
+            <div class="stat-card">
+                <div class="stat-number" id="totalTweets">-</div>
+                <div class="stat-label">Total Tweets</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="currentPage">-</div>
+                <div class="stat-label">Current Page</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalPages">-</div>
+                <div class="stat-label">Total Pages</div>
+            </div>
+        </div>
+        
+        <div id="loadingIndicator" class="loading">
+            <p>Loading tweets...</p>
+        </div>
+        
+        <div id="tweetsGrid" class="tweets-grid" style="display: none;">
+            <!-- Tweet cards will be inserted here -->
+        </div>
+        
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h3>No tweets found</h3>
+            <p>Add your first tweet to get started!</p>
+        </div>
+        
+        <div id="pagination" class="pagination" style="display: none;">
+            <!-- Pagination buttons will be inserted here -->
+        </div>
+    </div>
+    
+    <script src="/components/header-loader.js"></script>
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalTweets = 0;
+        let tweetsPerPage = 12;
+        let searchTerm = '';
+        let typeFilter = '';
+        
+        // Load tweets on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTweets();
+            
+            // Setup search functionality
+            const searchInput = document.getElementById('searchInput');
+            const typeFilterSelect = document.getElementById('typeFilter');
+            const tweetUrlInput = document.getElementById('tweetUrl');
+            const tweetTypeSelect = document.getElementById('tweetType');
+            let searchTimeout;
+            
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchTerm = this.value;
+                    currentPage = 1;
+                    loadTweets();
+                }, 500);
+            });
+            
+            typeFilterSelect.addEventListener('change', function() {
+                typeFilter = this.value;
+                currentPage = 1;
+                loadTweets();
+            });
+
+            // Update placeholder based on content type
+            function updatePlaceholder() {
+                const type = tweetTypeSelect.value;
+                if (type === 'space') {
+                    tweetUrlInput.placeholder = 'https://x.com/i/spaces/1ynJOMQBBoEKR';
+                } else {
+                    tweetUrlInput.placeholder = 'https://x.com/username/status/1234567890';
+                }
+            }
+
+            // Real-time URL validation
+            function validateUrlInput() {
+                const url = tweetUrlInput.value;
+                const type = tweetTypeSelect.value;
+                const validationMessage = document.getElementById('urlValidationMessage');
+                
+                if (!url) {
+                    tweetUrlInput.style.borderColor = '';
+                    validationMessage.style.display = 'none';
+                    return;
+                }
+
+                let isValid = false;
+                let message = '';
+                
+                if (type === 'space') {
+                    isValid = isSpaceUrl(url);
+                    if (isValid) {
+                        message = '✓ Valid Space URL format';
+                    } else {
+                        message = '✗ Please use Space URL format: https://x.com/i/spaces/...';
+                    }
+                } else {
+                    isValid = isTweetUrl(url);
+                    if (isValid) {
+                        message = '✓ Valid Tweet URL format';
+                    } else {
+                        message = '✗ Please use Tweet URL format: https://x.com/username/status/...';
+                    }
+                }
+
+                // Update border color
+                tweetUrlInput.style.borderColor = isValid ? '#34d399' : '#f87171';
+                
+                // Update validation message
+                validationMessage.textContent = message;
+                validationMessage.className = `validation-message ${isValid ? 'valid' : 'invalid'}`;
+                validationMessage.style.display = 'block';
+            }
+
+            tweetUrlInput.addEventListener('input', validateUrlInput);
+            tweetTypeSelect.addEventListener('change', function() {
+                updatePlaceholder();
+                validateUrlInput();
+            });
+            
+            // Initialize placeholder on page load
+            updatePlaceholder();
+        });
+        
+        async function loadTweets() {
+            try {
+                showLoading(true);
+                
+                const response = await fetch(`/api/get_all_tweets?page=${currentPage}&per_page=${tweetsPerPage}&search=${encodeURIComponent(searchTerm)}&type=${encodeURIComponent(typeFilter)}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                totalTweets = data.total;
+                totalPages = data.total_pages;
+                currentPage = data.page;
+                
+                updateStats();
+                renderTweets(data.tweets);
+                renderPagination();
+                
+            } catch (error) {
+                console.error('Error loading tweets:', error);
+                showError('Failed to load tweets. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('totalTweets').textContent = totalTweets;
+            document.getElementById('currentPage').textContent = currentPage;
+            document.getElementById('totalPages').textContent = totalPages;
+        }
+        
+        function renderTweets(tweets) {
+            const tweetsGrid = document.getElementById('tweetsGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (tweets.length === 0) {
+                tweetsGrid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            tweetsGrid.style.display = 'grid';
+            
+            tweetsGrid.innerHTML = tweets.map(tweet => {
+                // Helper function to format duration
+                const formatDuration = (duration) => {
+                    if (!duration) return 'N/A';
+                    const minutes = Math.floor(duration / 60000);
+                    const seconds = Math.floor((duration % 60000) / 1000);
+                    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                };
+
+                return `
+                <div class="tweet-card">
+                    <div class="tweet-header">
+                        <img src="${tweet.author_profile_image}" alt="${tweet.author_name}" class="tweet-avatar">
+                        <div class="tweet-author">
+                            <div class="tweet-author-name">${tweet.author_name}</div>
+                            <div class="tweet-author-username">@${tweet.author_username}</div>
+                        </div>
+                        <div class="tweet-type-badge tweet-type-${tweet.tweet_type}">${tweet.tweet_type}</div>
+                    </div>
+                    <div class="tweet-content">
+                        <div class="tweet-text">${tweet.text}</div>
+                        ${tweet.tweet_type === 'space' ? `
+                            ${tweet.space_title ? `<div class="space-title" style="font-weight: 600; margin-bottom: 0.75rem; color: #ffffff; font-size: 1.1rem; line-height: 1.4;">${tweet.space_title}</div>` : ''}
+                            
+                            <div class="space-info" style="background: rgba(255, 255, 255, 0.05); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem;">
+                                ${tweet.space_state ? `
+                                    <div class="space-state" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                                        <div style="width: 8px; height: 8px; border-radius: 50%; background: ${tweet.space_state === 'Live' ? '#10b981' : tweet.space_state === 'Ended' ? '#ef4444' : '#f59e0b'};"></div>
+                                        <span style="font-size: 0.9rem; color: #a3a3a3; text-transform: uppercase; font-weight: 500;">${tweet.space_state}</span>
+                                    </div>
+                                ` : ''}
+                                
+                                <div class="space-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                                    ${tweet.total_live_listeners ? `
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 1.25rem; font-weight: 600; color: #ffffff;">${tweet.total_live_listeners.toLocaleString()}</div>
+                                            <div style="font-size: 0.75rem; color: #a3a3a3; text-transform: uppercase;">Live Listeners</div>
+                                        </div>
+                                    ` : ''}
+                                    ${tweet.total_replay_watched ? `
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 1.25rem; font-weight: 600; color: #ffffff;">${tweet.total_replay_watched.toLocaleString()}</div>
+                                            <div style="font-size: 0.75rem; color: #a3a3a3; text-transform: uppercase;">Replay Views</div>
+                                        </div>
+                                    ` : ''}
+                                    ${tweet.space_duration ? `
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 1.25rem; font-weight: 600; color: #ffffff;">${formatDuration(tweet.space_duration)}</div>
+                                            <div style="font-size: 0.75rem; color: #a3a3a3; text-transform: uppercase;">Duration</div>
+                                        </div>
+                                    ` : ''}
+                                    ${tweet.space_participant_count ? `
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 1.25rem; font-weight: 600; color: #ffffff;">${tweet.space_participant_count}</div>
+                                            <div style="font-size: 0.75rem; color: #a3a3a3; text-transform: uppercase;">Participants</div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                
+                                ${tweet.space_speakers && tweet.space_speakers.length > 0 ? `
+                                    <div class="space-participants" style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 0.75rem;">
+                                        <div style="font-size: 0.8rem; color: #a3a3a3; margin-bottom: 0.5rem; font-weight: 500; text-transform: uppercase;">Speakers (${tweet.space_speakers.length})</div>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                            ${tweet.space_speakers.map(speaker => `
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.1); padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.8rem;">
+                                                    ${speaker.avatar_url ? `<img src="${speaker.avatar_url}" alt="${speaker.display_name || speaker.username}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">` : ''}
+                                                    <span style="color: #ffffff; font-weight: 500;">${speaker.display_name || speaker.username || 'Unknown'}</span>
+                                                    ${speaker.is_verified ? `<span style="color: #1d9bf0;">✓</span>` : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${tweet.space_admins && tweet.space_admins.length > 0 ? `
+                                    <div class="space-admins" style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 0.75rem; margin-top: 0.75rem;">
+                                        <div style="font-size: 0.8rem; color: #a3a3a3; margin-bottom: 0.5rem; font-weight: 500; text-transform: uppercase;">Hosts (${tweet.space_admins.length})</div>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                            ${tweet.space_admins.map(admin => `
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(59, 130, 246, 0.2); padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.8rem;">
+                                                    ${admin.avatar_url ? `<img src="${admin.avatar_url}" alt="${admin.display_name || admin.username}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">` : ''}
+                                                    <span style="color: #ffffff; font-weight: 500;">${admin.display_name || admin.username || 'Unknown'}</span>
+                                                    ${admin.is_verified ? `<span style="color: #1d9bf0;">✓</span>` : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                        ${tweet.images && tweet.images.length > 0 ? `
+                            <div class="tweet-images">
+                                ${tweet.images.map(img => `<img src="${img.url}" alt="${img.alt}" class="tweet-image">`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="tweet-stats">
+                        <span>❤️ ${tweet.favorite_count || 0}</span>
+                        <span>🔄 ${tweet.retweet_count || 0}</span>
+                        <span>💬 ${tweet.reply_count || 0}</span>
+                        <span>📅 ${new Date(tweet.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div class="tweet-actions">
+                        <button onclick="viewTweet('${tweet.tweet_id}')" class="btn btn-small btn-secondary">View</button>
+                        <button onclick="deleteTweet('${tweet.tweet_id}')" class="btn btn-small btn-danger">Delete</button>
+                    </div>
+                </div>
+            `;
+            }).join('');
+        }
+        
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            pagination.style.display = 'flex';
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
+            
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            if (startPage > 1) {
+                paginationHTML += `<button onclick="changePage(1)">1</button>`;
+                if (startPage > 2) {
+                    paginationHTML += `<span>...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `<button onclick="changePage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHTML += `<span>...</span>`;
+                }
+                paginationHTML += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            // Next button
+            paginationHTML += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
+            
+            pagination.innerHTML = paginationHTML;
+        }
+        
+        function changePage(page) {
+            if (page >= 1 && page <= totalPages && page !== currentPage) {
+                currentPage = page;
+                loadTweets();
+            }
+        }
+        
+        function refreshTweets() {
+            currentPage = 1;
+            searchTerm = '';
+            typeFilter = '';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('typeFilter').value = '';
+            loadTweets();
+        }
+        
+        function viewTweet(tweetId) {
+            window.open(`https://twitter.com/i/status/${tweetId}`, '_blank');
+        }
+
+        // URL validation functions
+        function isSpaceUrl(url) {
+            const patterns = [
+                /^https?:\/\/(?:www\.)?twitter\.com\/i\/spaces\/[A-Za-z0-9_-]+$/,
+                /^https?:\/\/(?:www\.)?x\.com\/i\/spaces\/[A-Za-z0-9_-]+$/
+            ];
+            return patterns.some(pattern => pattern.test(url));
+        }
+
+        function isTweetUrl(url) {
+            const patterns = [
+                /^https?:\/\/(?:www\.)?twitter\.com\/\w+\/status\/\d+$/,
+                /^https?:\/\/(?:www\.)?x\.com\/\w+\/status\/\d+$/,
+                /^https?:\/twitter\.com\/\w+\/status\/\d+$/,
+                /^https?:\/x\.com\/\w+\/status\/\d+$/
+            ];
+            return patterns.some(pattern => pattern.test(url));
+        }
+        
+        async function addTweet() {
+            const tweetUrl = document.getElementById('tweetUrl').value;
+            const tweetType = document.getElementById('tweetType').value;
+            
+            if (!tweetUrl) {
+                showError('Please enter a tweet URL');
+                return;
+            }
+
+            // Validate URL format based on content type
+            if (tweetType === 'space') {
+                // For spaces, URL must be in space format
+                if (!isSpaceUrl(tweetUrl)) {
+                    showError('For Space content type, please use a valid Space URL format: https://x.com/i/spaces/...');
+                    return;
+                }
+            } else {
+                // For all other types, URL must be in regular tweet format
+                if (!isTweetUrl(tweetUrl)) {
+                    showError('For this content type, please use a valid Tweet URL format: https://twitter.com/username/status/... or https://x.com/username/status/...');
+                    return;
+                }
+            }
+            
+            // Ask for password
+            const password = prompt('Enter password to add tweet:');
+            if (!password) {
+                return; // User cancelled
+            }
+            
+            try {
+                showLoading(true);
+                
+                const response = await fetch('/api/add_tweet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tweet_url: tweetUrl,
+                        tweet_type: tweetType,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Tweet added successfully!');
+                    document.getElementById('tweetUrl').value = '';
+                    loadTweets(); // Refresh the list
+                } else {
+                    showError('Error: ' + data.message);
+                }
+                
+            } catch (error) {
+                console.error('Error adding tweet:', error);
+                showError('Failed to add tweet. Please try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        async function deleteTweet(tweetId) {
+            if (!confirm('Are you sure you want to delete this tweet?')) {
+                return;
+            }
+            
+            const password = prompt('Enter password to delete tweet:');
+            if (!password) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/delete_tweet/${tweetId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ password: password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess('Tweet deleted successfully!');
+                    loadTweets(); // Refresh the list
+                } else {
+                    showError('Error: ' + data.message);
+                }
+                
+            } catch (error) {
+                console.error('Error deleting tweet:', error);
+                showError('Failed to delete tweet. Please try again.');
+            }
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+            document.getElementById('tweetsGrid').style.display = show ? 'none' : 'grid';
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                successDiv.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
