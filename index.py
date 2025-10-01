@@ -25,6 +25,7 @@ tweets_collection = db.tweets
 creator_showcase_collection = db.creator_showcase
 faqs_collection = db.faqs
 jobs_collection = db.jobs
+job_applications_collection = db.job_applications
     
 # Flask route to render the HTML template
 @app.route('/')
@@ -1588,6 +1589,420 @@ def delete_job(job_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Job Application Validation Functions
+def validate_application_form_data(data):
+    """
+    Validate job application form data
+    Returns: dict with 'isValid', 'errors', and 'warnings'
+    """
+    errors = []
+    warnings = []
+    
+    # Check if data exists
+    if not data or not isinstance(data, dict):
+        return {
+            'isValid': False,
+            'errors': ['No data received or invalid data format'],
+            'warnings': []
+        }
+    
+    # Required field validations
+    required_fields = ['fullName', 'email', 'educationLevel', 'yearsExperience', 'resumeUrl', 'jobId']
+    
+    for field in required_fields:
+        if not data.get(field) or not isinstance(data[field], str) or data[field].strip() == '':
+            errors.append(f'{field} is required and cannot be empty')
+    
+    # Full name validation
+    if data.get('fullName') and isinstance(data['fullName'], str):
+        trimmed_name = data['fullName'].strip()
+        if len(trimmed_name) < 2:
+            errors.append('Full name must be at least 2 characters long')
+        if len(trimmed_name) > 100:
+            errors.append('Full name cannot exceed 100 characters')
+        if not re.match(r'^[a-zA-Z\s\-\'\.]+$', trimmed_name):
+            errors.append('Full name contains invalid characters')
+    
+    # Email validation
+    if data.get('email') and isinstance(data['email'], str):
+        email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        if not re.match(email_regex, data['email'].strip()):
+            errors.append('Invalid email format')
+        if len(data['email']) > 254:
+            errors.append('Email address is too long')
+    
+    # Education level validation
+    if data.get('educationLevel') and isinstance(data['educationLevel'], str):
+        valid_education_levels = [
+            'high-school', 'associate', 'bachelor', 'master', 'phd', 'other'
+        ]
+        if data['educationLevel'] not in valid_education_levels:
+            errors.append('Invalid education level selected')
+    
+    # Years of experience validation
+    if data.get('yearsExperience') and isinstance(data['yearsExperience'], str):
+        valid_experience_levels = [
+            '0-1', '1-2', '2-3', '3-5', '5-7', '7-10', '10+'
+        ]
+        if data['yearsExperience'] not in valid_experience_levels:
+            errors.append('Invalid years of experience selected')
+    
+    # Resume URL validation (Google Drive)
+    if data.get('resumeUrl') and isinstance(data['resumeUrl'], str):
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(data['resumeUrl'].strip())
+            
+            # Check if it's a Google Drive URL
+            if 'drive.google.com' not in parsed_url.netloc:
+                errors.append('Resume URL must be a Google Drive link')
+            elif parsed_url.scheme != 'https':
+                errors.append('Resume URL must use HTTPS protocol')
+            # Allow any Google Drive URL format
+        except Exception:
+            errors.append('Invalid resume URL format')
+    
+    # Job ID validation
+    if data.get('jobId') and isinstance(data['jobId'], str):
+        job_id = data['jobId'].strip()
+        if len(job_id) < 1:
+            errors.append('Job ID cannot be empty')
+        # You can add additional job ID validation here if needed
+    
+    # LinkedIn URL validation (optional)
+    if data.get('linkedinUrl') and data['linkedinUrl'].strip() != '':
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(data['linkedinUrl'].strip())
+            hostname = parsed_url.netloc.lower()
+            pathname = parsed_url.path.lower()
+            
+            valid_hostname = hostname in ['www.linkedin.com', 'linkedin.com']
+            has_valid_path = pathname.startswith('/in/') and len(pathname.split('/')) >= 3
+            
+            if not valid_hostname or not has_valid_path:
+                warnings.append('LinkedIn URL format appears invalid')
+        except Exception:
+            warnings.append('Invalid LinkedIn URL format')
+    
+    # Twitter URL validation (optional)
+    if data.get('twitterUrl') and data['twitterUrl'].strip() != '':
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(data['twitterUrl'].strip())
+            hostname = parsed_url.netloc.lower()
+            pathname = parsed_url.path
+            
+            valid_hostnames = [
+                'twitter.com', 'www.twitter.com', 'x.com', 'www.x.com'
+            ]
+            
+            is_valid_hostname = hostname in valid_hostnames
+            has_username = len(pathname) > 1 and not pathname.endswith('/')
+            
+            if not is_valid_hostname or not has_username:
+                warnings.append('Twitter/X URL format appears invalid')
+        except Exception:
+            warnings.append('Invalid Twitter/X URL format')
+    
+    # Additional security validations
+    if data.get('fullName') and len(data['fullName']) > 500:
+        errors.append('Full name is suspiciously long')
+    
+    # Check for potential SQL injection or XSS attempts
+    suspicious_patterns = [
+        r'<script',
+        r'javascript:',
+        r'on\w+\s*=',
+        r'union\s+select',
+        r'drop\s+table',
+        r'delete\s+from'
+    ]
+    
+    all_text_fields = [
+        data.get('fullName', ''),
+        data.get('email', ''),
+        data.get('resumeUrl', ''),
+        data.get('linkedinUrl', ''),
+        data.get('twitterUrl', '')
+    ]
+    
+    for field in all_text_fields:
+        if field and isinstance(field, str):
+            for pattern in suspicious_patterns:
+                if re.search(pattern, field, re.IGNORECASE):
+                    errors.append('Suspicious content detected in form data')
+                    break
+    
+    return {
+        'isValid': len(errors) == 0,
+        'errors': errors,
+        'warnings': warnings
+    }
+
+def sanitize_application_data(data):
+    """
+    Sanitize job application data
+    Returns: dict with sanitized data
+    """
+    return {
+        'fullName': data.get('fullName', '').strip(),
+        'email': data.get('email', '').strip().lower(),
+        'educationLevel': data.get('educationLevel', ''),
+        'yearsExperience': data.get('yearsExperience', ''),
+        'resumeUrl': data.get('resumeUrl', '').strip(),
+        'linkedinUrl': data.get('linkedinUrl', '').strip(),
+        'twitterUrl': data.get('twitterUrl', '').strip(),
+        'jobId': data.get('jobId', '').strip()
+    }
+
+# Job Application Submission
+@app.route('/api/submit-job-application', methods=['POST'])
+def submit_job_application():
+    try:
+        data = request.get_json()
+        
+        # Debug logging
+        print(f"Received application data: {data}")
+        
+        # Check if data is None (no JSON sent)
+        if data is None:
+            return jsonify({
+                'success': False,
+                'message': 'No JSON data received',
+                'errors': ['Request must contain valid JSON data'],
+                'warnings': []
+            }), 400
+        
+        # Validate and sanitize the application data
+        validation_result = validate_application_form_data(data)
+        
+        print(f"Validation result: {validation_result}")
+        
+        if not validation_result['isValid']:
+            return jsonify({
+                'success': False,
+                'message': 'Validation failed',
+                'errors': validation_result['errors'],
+                'warnings': validation_result['warnings']
+            }), 400
+        
+        # Log warnings if any
+        if validation_result['warnings']:
+            print(f"Application form warnings: {validation_result['warnings']}")
+        
+        # Sanitize the data
+        sanitized_data = sanitize_application_data(data)
+        
+        # Create application document with additional metadata
+        application_doc = {
+            'fullName': sanitized_data['fullName'],
+            'email': sanitized_data['email'],
+            'educationLevel': sanitized_data['educationLevel'],
+            'yearsExperience': sanitized_data['yearsExperience'],
+            'resumeUrl': sanitized_data['resumeUrl'],
+            'linkedinUrl': sanitized_data['linkedinUrl'],
+            'twitterUrl': sanitized_data['twitterUrl'],
+            'jobId': sanitized_data['jobId'],
+            'timestamp': time.time(),
+            'submitted_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'status': 'submitted'  # submitted, reviewed, accepted, rejected
+        }
+        
+        # Insert into MongoDB
+        result = job_applications_collection.insert_one(application_doc)
+        
+        if result.inserted_id:
+            return jsonify({
+                'success': True,
+                'message': 'Application submitted successfully',
+                'application_id': str(result.inserted_id),
+                'data': sanitized_data
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to submit application'
+            }), 500
+        
+    except Exception as e:
+        print(f"Application submission error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
+
+# Debug endpoint to test application submission
+@app.route('/api/debug-application', methods=['POST'])
+def debug_application():
+    try:
+        data = request.get_json()
+        print(f"Debug - Raw request data: {data}")
+        print(f"Debug - Data type: {type(data)}")
+        print(f"Debug - Data keys: {list(data.keys()) if data else 'None'}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Debug endpoint reached',
+            'received_data': data,
+            'data_type': str(type(data)),
+            'data_keys': list(data.keys()) if data else None
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Debug error: {str(e)}'
+        }), 500
+
+# Admin API endpoints for managing applications
+
+# Get all job applications for admin (with pagination and filtering)
+@app.route('/api/admin/applications', methods=['GET'])
+def get_all_applications_admin():
+    try:
+        # Get pagination parameters
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '')
+        status_filter = request.args.get('status', '')
+        education_filter = request.args.get('education', '')
+        job_id_filter = request.args.get('job_id', '')
+        
+        # Calculate skip value
+        skip = (page - 1) * per_page
+        
+        # Build query
+        query = {}
+        if search:
+            query['$or'] = [
+                {'fullName': {'$regex': search, '$options': 'i'}},
+                {'email': {'$regex': search, '$options': 'i'}},
+                {'educationLevel': {'$regex': search, '$options': 'i'}}
+            ]
+        
+        if status_filter:
+            query['status'] = status_filter
+        
+        if education_filter:
+            query['educationLevel'] = education_filter
+        
+        if job_id_filter:
+            query['jobId'] = job_id_filter
+        
+        # Get total count
+        total_applications = job_applications_collection.count_documents(query)
+        
+        # Get applications with pagination
+        applications = list(job_applications_collection.find(query).sort('timestamp', -1).skip(skip).limit(per_page))
+        
+        # Convert ObjectId to string for JSON serialization and fetch job details
+        for application in applications:
+            application['_id'] = str(application['_id'])
+            
+            # Fetch job details if jobId exists
+            if application.get('jobId'):
+                try:
+                    job = jobs_collection.find_one({'_id': ObjectId(application['jobId'])})
+                    if job:
+                        application['jobDetails'] = {
+                            'role_name': job.get('role_name', 'Unknown Job'),
+                            'location': job.get('location', 'Unknown Location'),
+                            'type': job.get('type', 'Unknown Type'),
+                            'role_category': job.get('role_category', 'Unknown Category')
+                        }
+                    else:
+                        application['jobDetails'] = {
+                            'role_name': 'Job Not Found',
+                            'location': 'N/A',
+                            'type': 'N/A',
+                            'role_category': 'N/A'
+                        }
+                except Exception as e:
+                    print(f"Error fetching job details for jobId {application.get('jobId')}: {e}")
+                    application['jobDetails'] = {
+                        'role_name': 'Invalid Job ID',
+                        'location': 'N/A',
+                        'type': 'N/A',
+                        'role_category': 'N/A'
+                    }
+            else:
+                application['jobDetails'] = {
+                    'role_name': 'No Job ID',
+                    'location': 'N/A',
+                    'type': 'N/A',
+                    'role_category': 'N/A'
+                }
+        
+        return jsonify({
+            'applications': applications,
+            'total': total_applications,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total_applications + per_page - 1) // per_page
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Update application status
+@app.route('/api/admin/application/<application_id>', methods=['PUT'])
+def update_application_status(application_id):
+    try:
+        data = request.get_json()
+        
+        # Verify password
+        if data.get('password') != 'clustertothemoon':
+            return jsonify({'success': False, 'message': 'Wrong Password'}), 401
+        
+        # Validate status
+        valid_statuses = ['submitted', 'reviewed', 'accepted', 'rejected']
+        if 'status' in data and data['status'] not in valid_statuses:
+            return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
+        
+        # Update document
+        update_data = {
+            'updated_at': time.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        # Only update provided fields
+        allowed_fields = ['status']
+        for field in allowed_fields:
+            if field in data:
+                update_data[field] = data[field]
+        
+        result = job_applications_collection.update_one(
+            {'_id': ObjectId(application_id)},
+            {'$set': update_data}
+        )
+        
+        if result.matched_count:
+            return jsonify({'success': True, 'message': 'Application updated successfully'})
+        else:
+            return jsonify({'error': 'Application not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Delete application
+@app.route('/api/admin/application/<application_id>', methods=['DELETE'])
+def delete_application(application_id):
+    try:
+        data = request.get_json()
+        
+        # Verify password
+        if data.get('password') != 'clustertothemoon':
+            return jsonify({'success': False, 'message': 'Wrong Password'}), 401
+        
+        result = job_applications_collection.delete_one({'_id': ObjectId(application_id)})
+        
+        if result.deleted_count:
+            return jsonify({'success': True, 'message': 'Application deleted successfully'})
+        else:
+            return jsonify({'error': 'Application not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Serve the modular header component
 @app.route('/components/header.html')
 def serve_header():
@@ -1604,4 +2019,4 @@ def test_header():
     return send_file('site/test-header.html')
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(debug=True)
