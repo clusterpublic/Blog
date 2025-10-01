@@ -2018,5 +2018,120 @@ def serve_header_loader():
 def test_header():
     return send_file('site/test-header.html')
 
+# Ask Cluster AI endpoint
+@app.route('/ask-cluster-ai', methods=['POST'])
+def ask_cluster_ai():
+    print("=== ASK CLUSTER AI ENDPOINT HIT ===")
+    try:
+        # Get the question from the request
+        data = request.get_json()
+        print(f"Received data: {data}")
+        
+        if not data or 'question' not in data:
+            print("Error: No question provided")
+            return jsonify({'error': 'Question is required'}), 400
+        
+        question = data['question']
+        print(f"Question: {question}")
+        
+        # Get FAQs from the database
+        faqs = list(faqs_collection.find({}, {
+            'title': 1,
+            'description': 1
+        }).sort([('position', 1), ('timestamp', -1)]))
+        
+        # Get careers/jobs from the database
+        careers = list(jobs_collection.find({'is_active': True}, {
+            'role_name': 1,
+            'location': 1,
+            'type': 1,
+            'description': 1,
+            'role_category': 1
+        }).sort('timestamp', -1))
+        
+        # Format FAQs for the prompt
+        faqs_text = ""
+        for faq in faqs:
+            faqs_text += f"Q: {faq.get('title', '')}\nA: {faq.get('description', '')}\n\n"
+        
+        # Format careers for the prompt
+        careers_text = ""
+        for career in careers:
+            careers_text += f"Role: {career.get('role_name', '')}\nLocation: {career.get('location', '')}\nType: {career.get('type', '')}\nCategory: {career.get('role_category', '')}\nDescription: {career.get('description', '')}\n\n"
+        print(faqs_text)
+        print(careers_text)
+        # Create the prompt
+        prompt = f"""<SYSTEM INSTRUCTION>
+You're CluBot, your job is to only answer the question from the <DATASET> and nothing out of context. Be so strict with your rules.
+You will give quirky response as well. Try to promote our company and brag about it.
+</SYSTEM INSTRUCTION>
+<DATASET>
+#FAQS
+{faqs_text}
+
+#CAREERS
+{careers_text}
+</DATASET>
+<OUTPUT INSTRUCTION>
+Always respond in json and nothing else. Never give json with three "```json" in start . Just plain json in response and nothing else
+</OUTPUT INSTRUCTION>
+<OUTPUT FORMAT>
+{{"message": "Yeah! These things are available..."}}
+</OUTPUT FORMAT>
+
+Question: {question}"""
+        
+        # Call Gemini REST API
+        api_key = 'AIzaSyCGVB4WF_rUNainEZ_ZM3s6rbYcxjIwNXY'
+        url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}'
+        
+        headers = {
+            'Content-Type': 'application/json'
+        }
+        
+        payload = {
+            "contents": [{
+                "parts": [{
+                    "text": prompt
+                }]
+            }]
+        }
+        
+        # Make the API request
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        
+        # Parse the response
+        response_data = response.json()
+        
+        # Extract the generated text
+        if 'candidates' in response_data and len(response_data['candidates']) > 0:
+            generated_text = response_data['candidates'][0]['content']['parts'][0]['text']
+        else:
+            return jsonify({'error': 'No response generated from Gemini API'}), 500
+        
+        # Try to parse the response as JSON
+        try:
+            import json
+            response_text = generated_text.strip()
+            # Remove any markdown formatting if present
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
+            
+            # Parse as JSON to validate
+            json_response = json.loads(response_text)
+            return jsonify(json_response)
+        except json.JSONDecodeError:
+            # If not valid JSON, wrap in the expected format
+            return jsonify({"message": generated_text})
+        
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': f'API request failed: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
