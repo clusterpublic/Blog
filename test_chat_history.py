@@ -11,10 +11,10 @@ test_data = {
     "question": "What is this blog about?",
     "page_url": "https://example.com/blog/some-blog-id",
     "chat_history": [
-        {"user": "Hello, I'm looking for job opportunities"},
-        {"clubot": "Hey there! 🚀 Welcome to Cluster! We have amazing opportunities waiting for you!"},
-        {"user": "What kind of roles do you have?"},
-        {"clubot": "We have roles in tech, design, product, and more! What interests you most? 💼"}
+        {"User": "Hello, I'm looking for job opportunities"},
+        {"Cluster Help": "Hey there! 🚀 Welcome to Cluster Protocol! We have amazing opportunities waiting for you!"},
+        {"User": "What kind of roles do you have?"},
+        {"Cluster Help": "We have roles in tech, design, product, and more! What interests you most? 💼"}
     ]
 }
 
@@ -23,8 +23,8 @@ test_data_homepage = {
     "question": "What job positions are available?",
     "page_url": "https://example.com/",
     "chat_history": [
-        {"user": "Hello, I'm looking for job opportunities"},
-        {"clubot": "Hey there! 🚀 Welcome to Cluster! We have amazing opportunities waiting for you!"}
+        {"User": "Hello, I'm looking for job opportunities"},
+        {"Cluster Help": "Hey there! 🚀 Welcome to Cluster! We have amazing opportunities waiting for you!"}
     ]
 }
 
