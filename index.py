@@ -7,6 +7,11 @@ import re
 from flask_cors import CORS
 from bson import ObjectId
 import requests
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__, template_folder='site', static_folder='assets')
 CORS(app)
@@ -2148,7 +2153,9 @@ USER: {question}
 """
         
         # Call Gemini REST API
-        api_key = 'AIzaSyCGVB4WF_rUNainEZ_ZM3s6rbYcxjIwNXY'
+        api_key = os.getenv('GEMINI_API_KEY')
+        if not api_key:
+            return jsonify({'error': 'GEMINI_API_KEY environment variable not set'}), 500
         url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}'
         
         headers = {

@@ -4,3 +4,4 @@ pymongo
 dnspython
 flask-cors
 urllib3
+python-dotenv
