@@ -1013,17 +1013,17 @@
             container.innerHTML = `<div class="job-grid">${jobHTML}</div>`;
         }
 
-        function updatePagination(page, totalPages) {
+        function updatePagination(page, totalPagesParam) {
             const pagination = document.getElementById('pagination');
             
-            if (totalPages <= 1) {
+            if (totalPagesParam <= 1) {
                 pagination.style.display = 'none';
                 return;
             }
 
             pagination.style.display = 'flex';
             currentPage = page;
-            totalPages = totalPages;
+            totalPages = totalPagesParam;
 
             let paginationHTML = '';
 
@@ -1035,7 +1035,7 @@
             `;
 
             // Page numbers
-            for (let i = Math.max(1, page - 2); i <= Math.min(totalPages, page + 2); i++) {
+            for (let i = Math.max(1, page - 2); i <= Math.min(totalPagesParam, page + 2); i++) {
                 paginationHTML += `
                     <button class="pagination-btn ${i === page ? 'active' : ''}" onclick="changePage(${i})">
                         ${i}
@@ -1045,7 +1045,7 @@
 
             // Next button
             paginationHTML += `
-                <button class="pagination-btn" ${page === totalPages ? 'disabled' : ''} onclick="changePage(${page + 1})">
+                <button class="pagination-btn" ${page === totalPagesParam ? 'disabled' : ''} onclick="changePage(${page + 1})">
                     Next
                 </button>
             `;
@@ -1341,17 +1341,17 @@
             container.innerHTML = `<div class="job-grid">${applicationHTML}</div>`;
         }
 
-        function updateApplicationPagination(page, totalPages) {
+        function updateApplicationPagination(page, totalPagesParam) {
             const pagination = document.getElementById('applicationPagination');
             
-            if (totalPages <= 1) {
+            if (totalPagesParam <= 1) {
                 pagination.style.display = 'none';
                 return;
             }
 
             pagination.style.display = 'flex';
             currentApplicationPage = page;
-            totalApplicationPages = totalPages;
+            totalApplicationPages = totalPagesParam;
 
             let paginationHTML = '';
 
@@ -1363,7 +1363,7 @@
             `;
 
             // Page numbers
-            for (let i = Math.max(1, page - 2); i <= Math.min(totalPages, page + 2); i++) {
+            for (let i = Math.max(1, page - 2); i <= Math.min(totalPagesParam, page + 2); i++) {
                 paginationHTML += `
                     <button class="pagination-btn ${i === page ? 'active' : ''}" onclick="changeApplicationPage(${i})">
                         ${i}
@@ -1373,7 +1373,7 @@
 
             // Next button
             paginationHTML += `
-                <button class="pagination-btn" ${page === totalPages ? 'disabled' : ''} onclick="changeApplicationPage(${page + 1})">
+                <button class="pagination-btn" ${page === totalPagesParam ? 'disabled' : ''} onclick="changeApplicationPage(${page + 1})">
                     Next
                 </button>
             `;
