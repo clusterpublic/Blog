@@ -441,11 +441,13 @@ def parse_tweet_data_alternative(tweet_data, tweet_type):
                 'profile_image_url_https': ''
             }
         
-        # Extract media
+        # Extract media (images and video thumbnails)
         images = []
         if 'media' in main_tweet:
             for media in main_tweet['media']:
-                if media.get('type') == 'photo':
+                media_type = media.get('type')
+                # Handle photos, videos, and animated gifs
+                if media_type in ['photo', 'video', 'animated_gif']:
                     images.append({
                         'url': media.get('media_url_https', media.get('url', '')),
                         'alt': media.get('display_url', 'Tweet image')
@@ -544,11 +546,13 @@ def parse_tweet_data(tweet_data, tweet_type):
         author_username = user_info.get('screen_name', 'unknown')
         author_profile_image = user_info.get('profile_image_url_https', '')
         
-        # Extract media (images)
+        # Extract media (images and video thumbnails)
         images = []
         if 'extended_entities' in tweet_info and 'media' in tweet_info['extended_entities']:
             for media in tweet_info['extended_entities']['media']:
-                if media.get('type') == 'photo':
+                media_type = media.get('type')
+                # Handle photos, videos, and animated gifs
+                if media_type in ['photo', 'video', 'animated_gif']:
                     images.append({
                         'url': media.get('media_url_https', ''),
                         'alt': media.get('display_url', 'Tweet image')
