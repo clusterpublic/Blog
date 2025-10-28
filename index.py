@@ -558,6 +558,31 @@ def parse_tweet_data(tweet_data, tweet_type):
                         'alt': media.get('display_url', 'Tweet image')
                     })
         
+        # Extract article data if this is an article-type tweet
+        try:
+            # Check if the tweet has article data
+            if 'article' in main_tweet and 'article_results' in main_tweet['article']:
+                article_data = main_tweet['article']['article_results']['result']
+                
+                # Always use article title as tweet text for article-type tweets
+                article_title = article_data.get('title', '')
+                if article_title:
+                    text = article_title
+                
+                # Extract cover image if available and add to images
+                if 'cover_media' in article_data and 'media_info' in article_data['cover_media']:
+                    cover_media = article_data['cover_media']['media_info']
+                    cover_image_url = cover_media.get('original_img_url', '')
+                    if cover_image_url:
+                        # Clear existing images and use article cover image
+                        images = [{
+                            'url': cover_image_url,
+                            'alt': article_title or 'Article cover image'
+                        }]
+                    
+        except Exception as e:
+            print(f"Error extracting article data: {e}")
+        
         # Create tweet object
         tweet_obj = {
             'tweet_id': main_tweet.get('rest_id', ''),
