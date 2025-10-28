@@ -19,6 +19,7 @@ gunicorn deosnt downloads with requirements
 
 
 to run it (before stop the existing gunicron processes)
+(ps aux | grep gunicorn)
 (and always run it from the venv)
 nohup gunicorn --bind 0.0.0.0:8000 index:app > gunicorn.log 2>&1 &
 

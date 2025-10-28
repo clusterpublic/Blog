@@ -13,6 +13,10 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Twitter241 RapidAPI Key
+TWITTER241_RAPIDAPI_KEY_BACKUP = "7f43a93dcemsh15f97e671454c24p1a21efjsn5220bb3fc9af"
+TWITTER241_RAPIDAPI_KEY = "47822bb3bemsha001819593243e5p1b709djsn6666ce549748"
+
 app = Flask(__name__, template_folder='site', static_folder='assets')
 CORS(app)
 def create_safe_url(blog_title):
@@ -365,7 +369,7 @@ def fetch_tweet_data(tweet_id):
     url = f"https://twitter241.p.rapidapi.com/tweet?pid={tweet_id}"
     headers = {
         "x-rapidapi-host": "twitter241.p.rapidapi.com",
-        "x-rapidapi-key": "7f43a93dcemsh15f97e671454c24p1a21efjsn5220bb3fc9af"
+        "x-rapidapi-key": TWITTER241_RAPIDAPI_KEY
     }
     
     try:
@@ -380,7 +384,7 @@ def fetch_space_data(space_id):
     url = f"https://twitter241.p.rapidapi.com/spaces?id={space_id}"
     headers = {
         "x-rapidapi-host": "twitter241.p.rapidapi.com",
-        "x-rapidapi-key": "7f43a93dcemsh15f97e671454c24p1a21efjsn5220bb3fc9af"
+        "x-rapidapi-key": TWITTER241_RAPIDAPI_KEY
     }
     
     try:
@@ -866,8 +870,30 @@ def get_all_tweets():
             
             pinned_tweets.sort(key=lambda x: x['_pin_index'])
         else:
-            # No type filter - show all tweets without pin prioritization
-            pinned_tweets = []
+            # No type filter - get tweets pinned for 'all' type
+            pinned_query = {'pinned': {'$elemMatch': {'type': 'all'}}}
+            # Add search filter if present
+            if search:
+                pinned_query['$or'] = [
+                    {'text': {'$regex': search, '$options': 'i'}},
+                    {'author_name': {'$regex': search, '$options': 'i'}},
+                    {'author_username': {'$regex': search, '$options': 'i'}},
+                    {'tweet_id': {'$regex': search, '$options': 'i'}}
+                ]
+            pinned_tweets_raw = list(tweets_collection.find(pinned_query))
+            
+            # Filter and sort by the 'all' pin type's index
+            for tweet in pinned_tweets_raw:
+                if 'pinned' in tweet and isinstance(tweet['pinned'], list):
+                    for pin in tweet['pinned']:
+                        if pin.get('type') == 'all':
+                            tweet_copy = tweet.copy()
+                            # Keep the original pinned array, but add a _pin_index for sorting
+                            tweet_copy['_pin_index'] = pin.get('index', 0)
+                            pinned_tweets.append(tweet_copy)
+                            break
+            
+            pinned_tweets.sort(key=lambda x: x['_pin_index'])
         
         # Then get regular tweets (excluding pinned ones for the specific type)
         regular_query = query.copy()
@@ -885,8 +911,11 @@ def get_all_tweets():
                 {'pinned': {'$not': {'$elemMatch': {'type': 'all'}}}}
             ]
         else:
-            # No type filter - show all tweets
-            pass  # No exclusion needed
+            # No type filter - exclude tweets pinned for 'all' type
+            regular_query['$or'] = [
+                {'pinned': {'$exists': False}},
+                {'pinned': {'$not': {'$elemMatch': {'type': 'all'}}}}
+            ]
         
         regular_tweets = list(tweets_collection.find(regular_query).sort('created_at', -1))
         
