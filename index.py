@@ -785,19 +785,108 @@ def get_all_tweets():
         # Get total count
         total_tweets = tweets_collection.count_documents(query)
         
-        # Get tweets with pagination - include all fields including Space-specific data
-        tweets = list(tweets_collection.find(query).sort('created_at', -1).skip(skip).limit(per_page))
+        # Get pinned tweets first, then regular tweets
+        pinned_tweets = []
+        regular_tweets = []
         
-        # Convert ObjectId to string for JSON serialization
-        for tweet in tweets:
+        # First, get pinned tweets for the specific type (or all types if no filter)
+        if tweet_type and tweet_type != 'all':
+            # Get tweets pinned for this specific type (regardless of tweet_type)
+            pinned_query = {'pinned': {'$elemMatch': {'type': tweet_type}}}
+            # Add search filter if present
+            if search:
+                pinned_query['$or'] = [
+                    {'text': {'$regex': search, '$options': 'i'}},
+                    {'author_name': {'$regex': search, '$options': 'i'}},
+                    {'author_username': {'$regex': search, '$options': 'i'}},
+                    {'tweet_id': {'$regex': search, '$options': 'i'}}
+                ]
+            pinned_tweets_raw = list(tweets_collection.find(pinned_query))
+            
+            # Filter and sort by the specific pin type's index
+            for tweet in pinned_tweets_raw:
+                if 'pinned' in tweet and isinstance(tweet['pinned'], list):
+                    for pin in tweet['pinned']:
+                        if pin.get('type') == tweet_type:
+                            tweet_copy = tweet.copy()
+                            # Keep the original pinned array, but add a _pin_index for sorting
+                            tweet_copy['_pin_index'] = pin.get('index', 0)
+                            pinned_tweets.append(tweet_copy)
+                            break
+            
+            pinned_tweets.sort(key=lambda x: x['_pin_index'])
+        elif tweet_type == 'all':
+            # Get tweets pinned for 'all' type specifically (regardless of tweet_type)
+            pinned_query = {'pinned': {'$elemMatch': {'type': 'all'}}}
+            # Add search filter if present
+            if search:
+                pinned_query['$or'] = [
+                    {'text': {'$regex': search, '$options': 'i'}},
+                    {'author_name': {'$regex': search, '$options': 'i'}},
+                    {'author_username': {'$regex': search, '$options': 'i'}},
+                    {'tweet_id': {'$regex': search, '$options': 'i'}}
+                ]
+            pinned_tweets_raw = list(tweets_collection.find(pinned_query))
+            
+            # Filter and sort by the 'all' pin type's index
+            for tweet in pinned_tweets_raw:
+                if 'pinned' in tweet and isinstance(tweet['pinned'], list):
+                    for pin in tweet['pinned']:
+                        if pin.get('type') == 'all':
+                            tweet_copy = tweet.copy()
+                            # Keep the original pinned array, but add a _pin_index for sorting
+                            tweet_copy['_pin_index'] = pin.get('index', 0)
+                            pinned_tweets.append(tweet_copy)
+                            break
+            
+            pinned_tweets.sort(key=lambda x: x['_pin_index'])
+        else:
+            # No type filter - show all tweets without pin prioritization
+            pinned_tweets = []
+        
+        # Then get regular tweets (excluding pinned ones for the specific type)
+        regular_query = query.copy()
+        
+        if tweet_type and tweet_type != 'all':
+            # Exclude tweets pinned for this specific type
+            regular_query['$or'] = [
+                {'pinned': {'$exists': False}},
+                {'pinned': {'$not': {'$elemMatch': {'type': tweet_type}}}}
+            ]
+        elif tweet_type == 'all':
+            # Exclude tweets pinned for 'all' type
+            regular_query['$or'] = [
+                {'pinned': {'$exists': False}},
+                {'pinned': {'$not': {'$elemMatch': {'type': 'all'}}}}
+            ]
+        else:
+            # No type filter - show all tweets
+            pass  # No exclusion needed
+        
+        regular_tweets = list(tweets_collection.find(regular_query).sort('created_at', -1))
+        
+        # Combine tweets: pinned first, then regular
+        all_tweets = pinned_tweets + regular_tweets
+        
+        # Apply pagination to the combined list
+        start_idx = skip
+        end_idx = skip + per_page
+        paginated_tweets = all_tweets[start_idx:end_idx]
+        
+        # Convert ObjectId to string for JSON serialization and clean up temporary fields
+        for tweet in paginated_tweets:
             tweet['_id'] = str(tweet['_id'])
+            # Remove temporary _pin_index field if it exists
+            if '_pin_index' in tweet:
+                del tweet['_pin_index']
         
         return jsonify({
-            'tweets': tweets,
+            'tweets': paginated_tweets,
             'total': total_tweets,
             'page': page,
             'per_page': per_page,
-            'total_pages': (total_tweets + per_page - 1) // per_page
+            'total_pages': (total_tweets + per_page - 1) // per_page,
+            'pinned_count': len(pinned_tweets)
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -819,6 +908,296 @@ def delete_tweet(tweet_id):
             return jsonify({'success': False, 'message': 'Tweet not found'}), 404
         
         return jsonify({'success': True, 'message': 'Tweet deleted successfully'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==================== PIN MANAGER API ENDPOINTS ====================
+
+# Get tweets for pin manager (with pagination and type filtering)
+@app.route('/api/pin_manager/tweets', methods=['GET'])
+def get_tweets_for_pin_manager():
+    try:
+        # Get pagination parameters
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 12))
+        search = request.args.get('search', '')
+        tweet_type = request.args.get('type', '')
+        
+        # Calculate skip value
+        skip = (page - 1) * per_page
+        
+        # Build query
+        query = {}
+        if search:
+            query['$or'] = [
+                {'text': {'$regex': search, '$options': 'i'}},
+                {'author_name': {'$regex': search, '$options': 'i'}},
+                {'author_username': {'$regex': search, '$options': 'i'}},
+                {'tweet_id': {'$regex': search, '$options': 'i'}}
+            ]
+        
+        if tweet_type and tweet_type != 'all':
+            query['tweet_type'] = tweet_type
+        
+        # Get total count
+        total_tweets = tweets_collection.count_documents(query)
+        
+        # Get tweets with pagination
+        tweets = list(tweets_collection.find(query).sort('created_at', -1).skip(skip).limit(per_page))
+        
+        # Convert ObjectId to string for JSON serialization
+        for tweet in tweets:
+            tweet['_id'] = str(tweet['_id'])
+        
+        return jsonify({
+            'tweets': tweets,
+            'total': total_tweets,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total_tweets + per_page - 1) // per_page
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Get pinned tweets by type
+@app.route('/api/pin_manager/pinned/<tweet_type>', methods=['GET'])
+def get_pinned_tweets_by_type(tweet_type):
+    try:
+        # Build query for pinned tweets of specific type
+        query = {'pinned': {'$elemMatch': {'type': tweet_type}}}
+        
+        # Get pinned tweets
+        pinned_tweets = list(tweets_collection.find(query))
+        
+        # Filter and sort by the specific pin type's index
+        filtered_tweets = []
+        for tweet in pinned_tweets:
+            for pin in tweet.get('pinned', []):
+                if pin['type'] == tweet_type:
+                    # Create a copy of the tweet with the specific pin info
+                    tweet_copy = tweet.copy()
+                    tweet_copy['pinned'] = pin  # Replace array with specific pin
+                    filtered_tweets.append(tweet_copy)
+                    break
+        
+        # Sort by index
+        filtered_tweets.sort(key=lambda x: x['pinned']['index'])
+        
+        # Convert ObjectId to string for JSON serialization
+        for tweet in filtered_tweets:
+            tweet['_id'] = str(tweet['_id'])
+        
+        return jsonify({
+            'pinned_tweets': filtered_tweets,
+            'count': len(filtered_tweets)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Pin a tweet
+@app.route('/api/pin_manager/pin_tweet', methods=['POST'])
+def pin_tweet():
+    try:
+        data = request.get_json()
+        
+        # Verify password
+        if data.get('password') != 'clustertothemoon':
+            return jsonify({'success': False, 'message': 'Wrong Password'}), 401
+        
+        tweet_id = data.get('tweet_id')
+        tweet_type = data.get('tweet_type')
+        
+        if not tweet_id or not tweet_type:
+            return jsonify({'success': False, 'message': 'Tweet ID and type are required'}), 400
+        
+        # Check if tweet exists
+        tweet = tweets_collection.find_one({'tweet_id': tweet_id})
+        if not tweet:
+            return jsonify({'success': False, 'message': 'Tweet not found'}), 404
+        
+        # Get the next index for this type
+        max_pinned_query = {'pinned': {'$elemMatch': {'type': tweet_type}}}
+        all_pinned_tweets = list(tweets_collection.find(max_pinned_query))
+        
+        next_index = 1
+        max_index_for_type = 0
+        
+        # Find the highest index for this specific type across all tweets
+        for tweet_doc in all_pinned_tweets:
+            if 'pinned' in tweet_doc:
+                for pin in tweet_doc['pinned']:
+                    if pin['type'] == tweet_type and pin['index'] > max_index_for_type:
+                        max_index_for_type = pin['index']
+        
+        next_index = max_index_for_type + 1
+        
+        # Check if we've reached the max limit (10)
+        if next_index > 10:
+            return jsonify({'success': False, 'message': f'Maximum 10 tweets can be pinned for type "{tweet_type}"'}), 400
+        
+        # Check if tweet is already pinned for this specific type
+        existing_pin_query = {'tweet_id': tweet_id, 'pinned': {'$elemMatch': {'type': tweet_type}}}
+        existing_pin = tweets_collection.find_one(existing_pin_query)
+        if existing_pin:
+            return jsonify({'success': False, 'message': f'Tweet is already pinned for type "{tweet_type}"'}), 400
+        
+        # Initialize pinned array if it doesn't exist, or add to existing array
+        result = tweets_collection.update_one(
+            {'tweet_id': tweet_id},
+            {'$push': {
+                'pinned': {
+                    'type': tweet_type,
+                    'index': next_index
+                }
+            }}
+        )
+        
+        if result.matched_count == 0:
+            return jsonify({'success': False, 'message': 'Tweet not found'}), 404
+        
+        return jsonify({'success': True, 'message': 'Tweet pinned successfully'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Unpin a tweet
+@app.route('/api/pin_manager/unpin_tweet', methods=['POST'])
+def unpin_tweet():
+    try:
+        data = request.get_json()
+        
+        # Verify password
+        if data.get('password') != 'clustertothemoon':
+            return jsonify({'success': False, 'message': 'Wrong Password'}), 401
+        
+        tweet_id = data.get('tweet_id')
+        tweet_type = data.get('tweet_type')
+        
+        if not tweet_id or not tweet_type:
+            return jsonify({'success': False, 'message': 'Tweet ID and type are required'}), 400
+        
+        # Get the tweet to find the index of the pin being removed
+        tweet = tweets_collection.find_one({'tweet_id': tweet_id})
+        if not tweet or 'pinned' not in tweet:
+            return jsonify({'success': False, 'message': 'Tweet not found'}), 404
+        
+        # Find the index of the pin being removed
+        removed_index = None
+        for pin in tweet.get('pinned', []):
+            if pin.get('type') == tweet_type:
+                removed_index = pin.get('index')
+                break
+        
+        if removed_index is None:
+            return jsonify({'success': False, 'message': f'Tweet not pinned for type "{tweet_type}"'}), 404
+        
+        # Remove specific pin from the pinned array
+        result = tweets_collection.update_one(
+            {'tweet_id': tweet_id},
+            {'$pull': {'pinned': {'type': tweet_type}}}
+        )
+        
+        if result.matched_count == 0:
+            return jsonify({'success': False, 'message': 'Tweet not found'}), 404
+        
+        # Reorder indexes for remaining pins of this type
+        # Get all remaining pinned tweets of this type
+        remaining_pinned_tweets = list(tweets_collection.find({'pinned': {'$elemMatch': {'type': tweet_type}}}))
+        
+        # Update indexes for tweets that were after the removed index
+        for remaining_tweet in remaining_pinned_tweets:
+            for pin in remaining_tweet.get('pinned', []):
+                if pin.get('type') == tweet_type and pin.get('index') > removed_index:
+                    # Shift this pin's index down by 1
+                    tweets_collection.update_one(
+                        {'tweet_id': remaining_tweet['tweet_id'], 'pinned.type': tweet_type},
+                        {'$set': {'pinned.$.index': pin.get('index') - 1}}
+                    )
+        
+        return jsonify({'success': True, 'message': 'Tweet unpinned successfully and indexes reordered'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Update pin index (move up/down)
+@app.route('/api/pin_manager/update_pin_index', methods=['POST'])
+def update_pin_index():
+    try:
+        data = request.get_json()
+        
+        # Verify password
+        if data.get('password') != 'clustertothemoon':
+            return jsonify({'success': False, 'message': 'Wrong Password'}), 401
+        
+        tweet_id = data.get('tweet_id')
+        new_index = data.get('new_index')
+        tweet_type = data.get('tweet_type')
+        
+        if not tweet_id or new_index is None or not tweet_type:
+            return jsonify({'success': False, 'message': 'Tweet ID, new index, and type are required'}), 400
+        
+        # Validate index range
+        if new_index < 1 or new_index > 10:
+            return jsonify({'success': False, 'message': 'Index must be between 1 and 10'}), 400
+        
+        # Get the current tweet
+        current_tweet = tweets_collection.find_one({'tweet_id': tweet_id})
+        if not current_tweet or 'pinned' not in current_tweet:
+            return jsonify({'success': False, 'message': 'Pinned tweet not found'}), 404
+        
+        # Find the specific pin entry for this type
+        old_index = None
+        for pin in current_tweet.get('pinned', []):
+            if pin.get('type') == tweet_type:
+                old_index = pin.get('index')
+                break
+        
+        if old_index is None:
+            return jsonify({'success': False, 'message': f'Tweet not pinned for type "{tweet_type}"'}), 404
+        
+        # If moving to the same index, do nothing
+        if old_index == new_index:
+            return jsonify({'success': True, 'message': 'Index unchanged'})
+        
+        # Get all pinned tweets of this type
+        pinned_tweets = list(tweets_collection.find({'pinned': {'$elemMatch': {'type': tweet_type}}}))
+        
+        # Create a list of tweet IDs and their current indices for this type
+        tweet_indices = []
+        for tweet in pinned_tweets:
+            for pin in tweet.get('pinned', []):
+                if pin.get('type') == tweet_type:
+                    tweet_indices.append((tweet['tweet_id'], pin.get('index')))
+                    break
+        
+        # Sort by index
+        tweet_indices.sort(key=lambda x: x[1])
+        
+        # Update indices for all affected tweets
+        for tid, current_idx in tweet_indices:
+            if tid == tweet_id:
+                # This is the tweet we're moving - update its index
+                tweets_collection.update_one(
+                    {'tweet_id': tid, 'pinned.type': tweet_type},
+                    {'$set': {'pinned.$.index': new_index}}
+                )
+            elif old_index < new_index:
+                # Moving down: shift tweets between old_index+1 and new_index up by 1
+                if old_index < current_idx <= new_index:
+                    tweets_collection.update_one(
+                        {'tweet_id': tid, 'pinned.type': tweet_type},
+                        {'$set': {'pinned.$.index': current_idx - 1}}
+                    )
+            else:
+                # Moving up: shift tweets between new_index and old_index-1 down by 1
+                if new_index <= current_idx < old_index:
+                    tweets_collection.update_one(
+                        {'tweet_id': tid, 'pinned.type': tweet_type},
+                        {'$set': {'pinned.$.index': current_idx + 1}}
+                    )
+        
+        return jsonify({'success': True, 'message': 'Pin index updated successfully'})
         
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -1013,7 +1392,12 @@ def get_prompt_protocol_data():
             creator['_id'] = str(creator['_id'])
         
         # Get all tweets and separate them by type - include all fields including Space-specific data
-        all_tweets = list(tweets_collection.find({}).sort('created_at', -1))
+        # First get pinned tweets, then regular tweets
+        pinned_tweets = list(tweets_collection.find({'pinned': {'$exists': True}}).sort('pinned.index', 1))
+        regular_tweets = list(tweets_collection.find({'pinned': {'$exists': False}}).sort('created_at', -1))
+        
+        # Combine tweets: pinned first, then regular
+        all_tweets = pinned_tweets + regular_tweets
         
         # Convert ObjectId to string for JSON serialization
         for tweet in all_tweets:
