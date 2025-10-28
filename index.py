@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Twitter241 RapidAPI Key
-TWITTER241_RAPIDAPI_KEY_BACKUP = "7f43a93dcemsh15f97e671454c24p1a21efjsn5220bb3fc9af"
+# TWITTER241_RAPIDAPI_KEY_BACKUP = "7f43a93dcemsh15f97e671454c24p1a21efjsn5220bb3fc9af"
 TWITTER241_RAPIDAPI_KEY = "47822bb3bemsha001819593243e5p1b709djsn6666ce549748"
 
 app = Flask(__name__, template_folder='site', static_folder='assets')
@@ -473,6 +473,73 @@ def parse_tweet_data_alternative(tweet_data, tweet_type):
             'timestamp': time.time()
         }
         
+        # Check if this is a quoted tweet and extract quoted tweet info
+        is_quote = main_tweet.get('is_quote_status', False)
+        if not is_quote and 'legacy' in main_tweet:
+            is_quote = main_tweet['legacy'].get('is_quote_status', False)
+            
+        if 'quoted_status_result' in main_tweet and is_quote:
+            try:
+                quoted_result = main_tweet['quoted_status_result'].get('result', {})
+                
+                # Extract quoted user information
+                quoted_user = None
+                if 'core' in quoted_result and 'user_results' in quoted_result['core']:
+                    quoted_user = quoted_result['core']['user_results']['result']['legacy']
+                elif 'user' in quoted_result:
+                    quoted_user = quoted_result['user']
+                elif 'author' in quoted_result:
+                    quoted_user = quoted_result['author']
+                
+                if quoted_user:
+                    quoted_user_name = quoted_user.get('name', 'Unknown')
+                    quoted_user_username = quoted_user.get('screen_name', 'unknown')
+                    quoted_user_photo = quoted_user.get('profile_image_url_https', '')
+                else:
+                    quoted_user_name = 'Unknown'
+                    quoted_user_username = 'unknown'
+                    quoted_user_photo = ''
+                
+                # Extract quoted tweet information
+                quoted_tweet_legacy = quoted_result.get('legacy', quoted_result)
+                quoted_text = quoted_tweet_legacy.get('full_text', quoted_tweet_legacy.get('text', ''))
+                
+                # Extract quoted tweet media (images and video thumbnails)
+                quoted_images = []
+                if 'extended_entities' in quoted_tweet_legacy and 'media' in quoted_tweet_legacy['extended_entities']:
+                    for media in quoted_tweet_legacy['extended_entities']['media']:
+                        media_type = media.get('type')
+                        if media_type in ['photo', 'video', 'animated_gif']:
+                            quoted_images.append({
+                                'url': media.get('media_url_https', ''),
+                                'alt': media.get('display_url', 'Quoted tweet image')
+                            })
+                elif 'media' in quoted_tweet_legacy:
+                    for media in quoted_tweet_legacy['media']:
+                        media_type = media.get('type')
+                        if media_type in ['photo', 'video', 'animated_gif']:
+                            quoted_images.append({
+                                'url': media.get('media_url_https', media.get('url', '')),
+                                'alt': media.get('display_url', 'Quoted tweet image')
+                            })
+                
+                # Add quoted tweet info to the main tweet object
+                tweet_obj['quoted_tweet_info'] = {
+                    'user_name': quoted_user_name,
+                    'user_username': quoted_user_username,
+                    'user_photo': quoted_user_photo,
+                    'text': quoted_text,
+                    'images': quoted_images,
+                    'tweet_id': quoted_result.get('rest_id', quoted_result.get('id', '')),
+                    'created_at': quoted_tweet_legacy.get('created_at', '')
+                }
+                
+                print(f"[Alternative] Extracted quoted tweet info from @{quoted_user_username}")
+                
+            except Exception as e:
+                print(f"[Alternative] Error extracting quoted tweet info: {e}")
+                # Don't fail the entire parsing if quoted tweet extraction fails
+        
         return tweet_obj
         
     except Exception as e:
@@ -602,6 +669,55 @@ def parse_tweet_data(tweet_data, tweet_type):
             'reply_count': tweet_info.get('reply_count', 0),
             'timestamp': time.time()
         }
+        
+        # Check if this is a quoted tweet and extract quoted tweet info
+        if 'quoted_status_result' in main_tweet and tweet_info.get('is_quote_status', False):
+            try:
+                quoted_result = main_tweet['quoted_status_result'].get('result', {})
+                
+                # Extract quoted user information
+                if 'core' in quoted_result and 'user_results' in quoted_result['core']:
+                    quoted_user = quoted_result['core']['user_results']['result']['legacy']
+                    quoted_user_name = quoted_user.get('name', 'Unknown')
+                    quoted_user_username = quoted_user.get('screen_name', 'unknown')
+                    quoted_user_photo = quoted_user.get('profile_image_url_https', '')
+                else:
+                    quoted_user_name = 'Unknown'
+                    quoted_user_username = 'unknown'
+                    quoted_user_photo = ''
+                
+                # Extract quoted tweet information
+                quoted_tweet_legacy = quoted_result.get('legacy', {})
+                quoted_text = quoted_tweet_legacy.get('full_text', '')
+                
+                # Extract quoted tweet media (images and video thumbnails)
+                quoted_images = []
+                if 'extended_entities' in quoted_tweet_legacy and 'media' in quoted_tweet_legacy['extended_entities']:
+                    for media in quoted_tweet_legacy['extended_entities']['media']:
+                        media_type = media.get('type')
+                        # Handle photos, videos, and animated gifs
+                        if media_type in ['photo', 'video', 'animated_gif']:
+                            quoted_images.append({
+                                'url': media.get('media_url_https', ''),
+                                'alt': media.get('display_url', 'Quoted tweet image')
+                            })
+                
+                # Add quoted tweet info to the main tweet object
+                tweet_obj['quoted_tweet_info'] = {
+                    'user_name': quoted_user_name,
+                    'user_username': quoted_user_username,
+                    'user_photo': quoted_user_photo,
+                    'text': quoted_text,
+                    'images': quoted_images,
+                    'tweet_id': quoted_result.get('rest_id', ''),
+                    'created_at': quoted_tweet_legacy.get('created_at', '')
+                }
+                
+                print(f"Extracted quoted tweet info from @{quoted_user_username}")
+                
+            except Exception as e:
+                print(f"Error extracting quoted tweet info: {e}")
+                # Don't fail the entire parsing if quoted tweet extraction fails
         
         return tweet_obj
         
@@ -898,24 +1014,43 @@ def get_all_tweets():
         # Then get regular tweets (excluding pinned ones for the specific type)
         regular_query = query.copy()
         
+        # Build the pinned exclusion filter
+        pinned_exclusion = []
         if tweet_type and tweet_type != 'all':
             # Exclude tweets pinned for this specific type
-            regular_query['$or'] = [
+            pinned_exclusion = [
                 {'pinned': {'$exists': False}},
                 {'pinned': {'$not': {'$elemMatch': {'type': tweet_type}}}}
             ]
         elif tweet_type == 'all':
             # Exclude tweets pinned for 'all' type
-            regular_query['$or'] = [
+            pinned_exclusion = [
                 {'pinned': {'$exists': False}},
                 {'pinned': {'$not': {'$elemMatch': {'type': 'all'}}}}
             ]
         else:
             # No type filter - exclude tweets pinned for 'all' type
-            regular_query['$or'] = [
+            pinned_exclusion = [
                 {'pinned': {'$exists': False}},
                 {'pinned': {'$not': {'$elemMatch': {'type': 'all'}}}}
             ]
+        
+        # If there's already a search filter in the query, combine with $and
+        if '$or' in regular_query:
+            # Save the search filter
+            search_filter = regular_query.pop('$or')
+            # Combine search filter with pinned exclusion using $and
+            regular_query['$and'] = [
+                {'$or': search_filter},
+                {'$or': pinned_exclusion}
+            ]
+            # If there's a tweet_type in the query, include it in $and
+            if 'tweet_type' in regular_query:
+                tweet_type_filter = regular_query.pop('tweet_type')
+                regular_query['$and'].append({'tweet_type': tweet_type_filter})
+        else:
+            # No search filter, just add the pinned exclusion
+            regular_query['$or'] = pinned_exclusion
         
         regular_tweets = list(tweets_collection.find(regular_query).sort('created_at', -1))
         
