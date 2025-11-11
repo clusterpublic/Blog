@@ -1052,15 +1052,33 @@ def get_all_tweets():
             # No search filter, just add the pinned exclusion
             regular_query['$or'] = pinned_exclusion
         
-        regular_tweets = list(tweets_collection.find(regular_query).sort('timestamp', -1))
+        # Calculate pagination for regular tweets
+        # If we're on page 1, we need to account for pinned tweets
+        pinned_count = len(pinned_tweets)
         
-        # Combine tweets: pinned first, then regular
-        all_tweets = pinned_tweets + regular_tweets
+        if skip < pinned_count:
+            # We're still showing pinned tweets on this page
+            regular_skip = 0
+            regular_limit = per_page - (pinned_count - skip)
+        else:
+            # We've passed all pinned tweets
+            regular_skip = skip - pinned_count
+            regular_limit = per_page
         
-        # Apply pagination to the combined list
-        start_idx = skip
-        end_idx = skip + per_page
-        paginated_tweets = all_tweets[start_idx:end_idx]
+        # Fetch only the regular tweets we need for this page
+        if regular_limit > 0:
+            regular_tweets = list(tweets_collection.find(regular_query).sort('created_at', -1).skip(regular_skip).limit(regular_limit))
+        else:
+            regular_tweets = []
+        
+        # Combine tweets: pinned first (with pagination), then regular
+        if skip < pinned_count:
+            # Include relevant pinned tweets for this page
+            paginated_pinned = pinned_tweets[skip:]
+            paginated_tweets = paginated_pinned + regular_tweets
+        else:
+            # No pinned tweets on this page
+            paginated_tweets = regular_tweets
         
         # Convert ObjectId to string for JSON serialization and clean up temporary fields
         for tweet in paginated_tweets:
@@ -1075,7 +1093,7 @@ def get_all_tweets():
             'page': page,
             'per_page': per_page,
             'total_pages': (total_tweets + per_page - 1) // per_page,
-            'pinned_count': len(pinned_tweets)
+            'pinned_count': pinned_count
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1132,8 +1150,8 @@ def get_tweets_for_pin_manager():
         # Get total count
         total_tweets = tweets_collection.count_documents(query)
         
-        # Get tweets with pagination
-        tweets = list(tweets_collection.find(query).sort('timestamp', -1).skip(skip).limit(per_page))
+        # Get tweets with pagination (sorted by created_at ISO date string)
+        tweets = list(tweets_collection.find(query).sort('created_at', -1).skip(skip).limit(per_page))
         
         # Convert ObjectId to string for JSON serialization
         for tweet in tweets:
