@@ -1052,7 +1052,7 @@ def get_all_tweets():
             # No search filter, just add the pinned exclusion
             regular_query['$or'] = pinned_exclusion
         
-        regular_tweets = list(tweets_collection.find(regular_query).sort('created_at', -1))
+        regular_tweets = list(tweets_collection.find(regular_query).sort('timestamp', -1))
         
         # Combine tweets: pinned first, then regular
         all_tweets = pinned_tweets + regular_tweets
@@ -1133,7 +1133,7 @@ def get_tweets_for_pin_manager():
         total_tweets = tweets_collection.count_documents(query)
         
         # Get tweets with pagination
-        tweets = list(tweets_collection.find(query).sort('created_at', -1).skip(skip).limit(per_page))
+        tweets = list(tweets_collection.find(query).sort('timestamp', -1).skip(skip).limit(per_page))
         
         # Convert ObjectId to string for JSON serialization
         for tweet in tweets:
