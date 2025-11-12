@@ -916,6 +916,10 @@ def get_all_tweets():
         
         # Build query
         query = {}
+        
+        # Exclude tweets with tweet_type: "space" at database level
+        query['tweet_type'] = {'$ne': 'space'}
+        
         if search:
             query['$or'] = [
                 {'text': {'$regex': search, '$options': 'i'}},
@@ -925,7 +929,9 @@ def get_all_tweets():
             ]
         
         if tweet_type:
-            query['tweet_type'] = tweet_type
+            # Override with specific type if provided (and it's not 'space')
+            if tweet_type != 'space':
+                query['tweet_type'] = tweet_type
         
         # Get total count
         total_tweets = tweets_collection.count_documents(query)
@@ -937,7 +943,10 @@ def get_all_tweets():
         # First, get pinned tweets for the specific type (or all types if no filter)
         if tweet_type and tweet_type != 'all':
             # Get tweets pinned for this specific type (regardless of tweet_type)
-            pinned_query = {'pinned': {'$elemMatch': {'type': tweet_type}}}
+            pinned_query = {
+                'pinned': {'$elemMatch': {'type': tweet_type}},
+                'tweet_type': {'$ne': 'space'}  # Exclude space tweets
+            }
             # Add search filter if present
             if search:
                 pinned_query['$or'] = [
@@ -962,7 +971,10 @@ def get_all_tweets():
             pinned_tweets.sort(key=lambda x: x['_pin_index'])
         elif tweet_type == 'all':
             # Get tweets pinned for 'all' type specifically (regardless of tweet_type)
-            pinned_query = {'pinned': {'$elemMatch': {'type': 'all'}}}
+            pinned_query = {
+                'pinned': {'$elemMatch': {'type': 'all'}},
+                'tweet_type': {'$ne': 'space'}  # Exclude space tweets
+            }
             # Add search filter if present
             if search:
                 pinned_query['$or'] = [
@@ -987,7 +999,10 @@ def get_all_tweets():
             pinned_tweets.sort(key=lambda x: x['_pin_index'])
         else:
             # No type filter - get tweets pinned for 'all' type
-            pinned_query = {'pinned': {'$elemMatch': {'type': 'all'}}}
+            pinned_query = {
+                'pinned': {'$elemMatch': {'type': 'all'}},
+                'tweet_type': {'$ne': 'space'}  # Exclude space tweets
+            }
             # Add search filter if present
             if search:
                 pinned_query['$or'] = [
@@ -1067,7 +1082,7 @@ def get_all_tweets():
         
         # Fetch only the regular tweets we need for this page
         if regular_limit > 0:
-            regular_tweets = list(tweets_collection.find(regular_query).sort('timestamp', -1).skip(regular_skip).limit(regular_limit))
+            regular_tweets = list(tweets_collection.find(regular_query).sort('tweet_id', -1).skip(regular_skip).limit(regular_limit))
         else:
             regular_tweets = []
         
