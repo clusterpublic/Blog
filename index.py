@@ -1151,6 +1151,10 @@ def get_tweets_for_pin_manager():
         
         # Build query
         query = {}
+        
+        # Exclude tweets with tweet_type: "space" at database level
+        query['tweet_type'] = {'$ne': 'space'}
+        
         if search:
             query['$or'] = [
                 {'text': {'$regex': search, '$options': 'i'}},
@@ -1160,13 +1164,15 @@ def get_tweets_for_pin_manager():
             ]
         
         if tweet_type and tweet_type != 'all':
-            query['tweet_type'] = tweet_type
+            # Override with specific type if provided (and it's not 'space')
+            if tweet_type != 'space':
+                query['tweet_type'] = tweet_type
         
         # Get total count
         total_tweets = tweets_collection.count_documents(query)
         
-        # Get tweets with pagination (sorted by timestamp from Twitter)
-        tweets = list(tweets_collection.find(query).sort('timestamp', -1).skip(skip).limit(per_page))
+        # Get tweets with pagination (sorted by tweet_id descending)
+        tweets = list(tweets_collection.find(query).sort('tweet_id', -1).skip(skip).limit(per_page))
         
         # Convert ObjectId to string for JSON serialization
         for tweet in tweets:
@@ -1187,7 +1193,10 @@ def get_tweets_for_pin_manager():
 def get_pinned_tweets_by_type(tweet_type):
     try:
         # Build query for pinned tweets of specific type
-        query = {'pinned': {'$elemMatch': {'type': tweet_type}}}
+        query = {
+            'pinned': {'$elemMatch': {'type': tweet_type}},
+            'tweet_type': {'$ne': 'space'}  # Exclude space tweets
+        }
         
         # Get pinned tweets
         pinned_tweets = list(tweets_collection.find(query))
