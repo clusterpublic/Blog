@@ -591,30 +591,39 @@
             const textAfter = editor.value.substring(endPos, editor.value.length);
             
             let formattedText = '';
+            let cursorOffset = 0;
             switch (format) {
                 case 'bold':
                     formattedText = '**' + selectedText + '**';
+                    cursorOffset = formattedText.length;
                     break;
                 case 'italic':
                     formattedText = '*' + selectedText + '*';
+                    cursorOffset = formattedText.length;
                     break;
                 case 'underline':
                     formattedText = '__' + selectedText + '__';
+                    cursorOffset = formattedText.length;
                     break;
                 case 'heading':
                     formattedText = '##' + selectedText + '##';
+                    cursorOffset = formattedText.length;
                     break;
                 case 'code':
                     formattedText = '```' + selectedText + '```';
+                    cursorOffset = formattedText.length;
                     break;
                 case 'quote':
                     formattedText = '````' + selectedText + '````';
+                    cursorOffset = formattedText.length;
                     break;
             }
             
             editor.value = textBefore + formattedText + textAfter;
             editor.focus();
-            editor.setSelectionRange(startPos + formattedText.length, startPos + formattedText.length);
+            // Position cursor right after the formatted text
+            const newCursorPos = startPos + cursorOffset;
+            editor.setSelectionRange(newCursorPos, newCursorPos);
         }
         
         function insertLinkFormatting(editor, selectedText) {
