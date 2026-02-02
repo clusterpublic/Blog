@@ -15,7 +15,7 @@ load_dotenv()
 
 # Twitter241 RapidAPI Key
 # TWITTER241_RAPIDAPI_KEY_BACKUP = "7f43a93dcemsh15f97e671454c24p1a21efjsn5220bb3fc9af"
-TWITTER241_RAPIDAPI_KEY = "47822bb3bemsha001819593243e5p1b709djsn6666ce549748"
+TWITTER241_RAPIDAPI_KEY = "7d5407919amsh0f9a6e1cfe28dbdp12189ajsn16aa00c7243f"
 
 app = Flask(__name__, template_folder='site', static_folder='assets')
 CORS(app)
