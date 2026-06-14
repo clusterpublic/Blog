@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FAQ Manager - Cluster Protocol</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;500;600;700&family=Pliant:wght@400;500;600;700&display=swap">
-    <link rel="stylesheet" href="/styles/white-theme.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="/styles/clay-theme.css">
 </head>
 <body>
     <!-- Header will be loaded by header-loader.js -->
@@ -18,7 +16,7 @@
 
         <div class="controls">
             <input type="text" class="search-box" id="searchInput" placeholder="Search FAQs by title or description...">
-            <button class="btn btn-primary" onclick="openCreateModal()"><i data-lucide="plus"></i> Create FAQ</button>
+            <button class="btn" onclick="openCreateModal()">Create New FAQ</button>
         </div>
 
         <div id="faqContainer">
@@ -52,9 +50,15 @@
                     <textarea class="form-textarea" id="faqDescription" required></textarea>
                 </div>
                 
+                <div class="form-group">
+                    <label class="form-label" for="faqPassword">Password</label>
+                    <input type="password" class="form-input" id="faqPassword" required placeholder="Enter admin password">
+                </div>
+                
+                
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()"><i data-lucide="x"></i> Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn"><i data-lucide="plus"></i> Create FAQ</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn" id="submitBtn">Create FAQ</button>
                 </div>
             </form>
         </div>
@@ -115,13 +119,12 @@
             } catch (error) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon"><i data-lucide="alert-circle"></i></div>
-                        <div class="empty-state-title">Error loading FAQs</div>
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-title">Error Loading FAQs</div>
                         <div class="empty-state-text">${error.message}</div>
-                        <button class="btn btn-primary" onclick="loadFAQs()"><i data-lucide="refresh-cw"></i> Retry</button>
+                        <button class="btn btn-primary" onclick="loadFAQs()">Retry</button>
                     </div>
                 `;
-                window.refreshIcons?.();
             }
         }
 
@@ -132,13 +135,12 @@
             if (faqs.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon"><i data-lucide="help-circle"></i></div>
-                        <div class="empty-state-title">No FAQs found</div>
-                        <div class="empty-state-text">Create your first FAQ to get started.</div>
-                        <button class="btn btn-primary" onclick="openCreateModal()"><i data-lucide="plus"></i> Create FAQ</button>
+                        <div class="empty-state-icon">❓</div>
+                        <div class="empty-state-title">No FAQs Found</div>
+                        <div class="empty-state-text">Create your first FAQ to get started</div>
+                        <button class="btn btn-primary" onclick="openCreateModal()">Create FAQ</button>
                     </div>
                 `;
-                window.refreshIcons?.();
                 return;
             }
 
@@ -147,8 +149,8 @@
                     <div class="faq-header">
                         <div style="display: flex; align-items: center; gap: 1rem;">
                             <div class="position-controls">
-                                <button class="position-btn" onclick="moveFAQUp('${faq._id}')" ${index === 0 ? 'disabled' : ''} aria-label="Move up"><i data-lucide="chevron-up"></i></button>
-                                <button class="position-btn" onclick="moveFAQDown('${faq._id}')" ${index === faqs.length - 1 ? 'disabled' : ''} aria-label="Move down"><i data-lucide="chevron-down"></i></button>
+                                <button class="position-btn" onclick="moveFAQUp('${faq._id}')" ${index === 0 ? 'disabled' : ''}>▲</button>
+                                <button class="position-btn" onclick="moveFAQDown('${faq._id}')" ${index === faqs.length - 1 ? 'disabled' : ''}>▼</button>
                             </div>
                             <h3 class="faq-title">
                                 <span class="faq-position">${faq.position || index + 1}</span>
@@ -156,8 +158,8 @@
                             </h3>
                         </div>
                         <div class="faq-actions">
-                            <button class="btn btn-secondary btn-small" onclick="editFAQ('${faq._id}')"><i data-lucide="pencil"></i> Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="deleteFAQ('${faq._id}')"><i data-lucide="trash-2"></i> Delete</button>
+                            <button class="btn btn-secondary btn-small" onclick="editFAQ('${faq._id}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteFAQ('${faq._id}')">Delete</button>
                         </div>
                     </div>
                     <p class="faq-description">${escapeHtml(faq.description)}</p>
@@ -169,7 +171,6 @@
             `).join('');
 
             container.innerHTML = `<div class="faq-grid">${faqHTML}</div>`;
-            window.refreshIcons?.();
         }
 
         function updatePagination(page, totalPagesParam) {
@@ -219,83 +220,62 @@
             }
         }
 
-        function setSubmitBtn(mode) {
-            const btn = document.getElementById('submitBtn');
-            if (mode === 'create') btn.innerHTML = '<i data-lucide="plus"></i> Create FAQ';
-            else if (mode === 'update') btn.innerHTML = '<i data-lucide="save"></i> Update FAQ';
-            else if (mode === 'saving') btn.textContent = 'Saving…';
-            window.refreshIcons?.();
-        }
-
         function openCreateModal() {
             currentFaqId = null;
             document.getElementById('modalTitle').textContent = 'Create FAQ';
-            setSubmitBtn('create');
+            document.getElementById('submitBtn').textContent = 'Create FAQ';
             document.getElementById('faqForm').reset();
-            document.getElementById('faqModal').classList.add('open');
+            document.getElementById('faqModal').classList.add('show');
         }
 
         function editFAQ(faqId) {
             currentFaqId = faqId;
             document.getElementById('modalTitle').textContent = 'Edit FAQ';
-            setSubmitBtn('update');
-
-            const cached = allFaqs.find((f) => f._id === faqId);
-            if (cached) {
-                document.getElementById('faqTitle').value = cached.title || '';
-                document.getElementById('faqDescription').value = cached.description || '';
-                document.getElementById('faqModal').classList.add('open');
-                return;
-            }
-
+            document.getElementById('submitBtn').textContent = 'Update FAQ';
+            
+            // Fetch FAQ data
             fetch(`/api/faq/${faqId}`)
-                .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
-                .then(({ ok, data }) => {
-                    if (!ok || !data.title) {
-                        throw new Error(data.error || 'Failed to load FAQ');
+                .then(response => response.json())
+                .then(data => {
+                    if (data.title) {
+                        document.getElementById('faqTitle').value = data.title;
+                        document.getElementById('faqDescription').value = data.description;
+                        document.getElementById('faqModal').classList.add('show');
                     }
-                    document.getElementById('faqTitle').value = data.title;
-                    document.getElementById('faqDescription').value = data.description;
-                    document.getElementById('faqModal').classList.add('open');
                 })
-                .catch((error) => {
+                .catch(error => {
                     alert('Error loading FAQ: ' + error.message);
                 });
         }
 
         function deleteFAQ(faqId) {
-            AdminConfirm.ask({
-                title: 'Delete FAQ',
-                message: 'Are you sure you want to delete this FAQ? <strong>This cannot be undone.</strong>',
-                confirmLabel: 'Delete',
-                destructive: true,
-            }).then((confirmed) => {
-                if (!confirmed) return;
-
-                const password = AdminPassword.require();
-                if (!password) return;
-
+            const password = prompt('Enter admin password to delete FAQ:');
+            if (!password) return;
+            
+            if (confirm('Are you sure you want to delete this FAQ?')) {
                 fetch(`/api/faq/${faqId}`, {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: password }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password })
                 })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        if (data.success) {
-                            loadFAQs();
-                        } else {
-                            alert('Error deleting FAQ: ' + (data.message || data.error));
-                        }
-                    })
-                    .catch((error) => {
-                        alert('Error deleting FAQ: ' + error.message);
-                    });
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadFAQs();
+                    } else {
+                        alert('Error deleting FAQ: ' + (data.message || data.error));
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting FAQ: ' + error.message);
+                });
+            }
         }
 
         function closeModal() {
-            document.getElementById('faqModal').classList.remove('open');
+            document.getElementById('faqModal').classList.remove('show');
         }
 
         document.getElementById('faqForm').addEventListener('submit', async function(e) {
@@ -303,12 +283,11 @@
             
             const title = document.getElementById('faqTitle').value;
             const description = document.getElementById('faqDescription').value;
-            const password = AdminPassword.require();
-            if (!password) return;
+            const password = document.getElementById('faqPassword').value;
             const submitBtn = document.getElementById('submitBtn');
             
             submitBtn.disabled = true;
-            setSubmitBtn('saving');
+            submitBtn.textContent = 'Saving...';
 
             try {
                 const url = currentFaqId ? `/api/faq/${currentFaqId}` : '/api/faq';
@@ -338,7 +317,7 @@
                 alert('Error saving FAQ: ' + error.message);
             } finally {
                 submitBtn.disabled = false;
-                setSubmitBtn(currentFaqId ? 'update' : 'create');
+                submitBtn.textContent = currentFaqId ? 'Update FAQ' : 'Create FAQ';
             }
         });
 
@@ -357,7 +336,7 @@
 
         // Simple up/down arrow functionality
         async function moveFAQUp(faqId) {
-            const password = AdminPassword.require();
+            const password = prompt('Enter admin password to reorder FAQ:');
             if (!password) return;
             
             const currentIndex = allFaqs.findIndex(f => f._id === faqId);
@@ -392,7 +371,7 @@
         }
 
         async function moveFAQDown(faqId) {
-            const password = AdminPassword.require();
+            const password = prompt('Enter admin password to reorder FAQ:');
             if (!password) return;
             
             const currentIndex = allFaqs.findIndex(f => f._id === faqId);

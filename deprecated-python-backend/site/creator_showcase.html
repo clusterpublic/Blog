@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Creator Showcase Manager - Cluster Protocol</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;500;600;700&family=Pliant:wght@400;500;600;700&display=swap">
-    <link rel="stylesheet" href="/styles/white-theme.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="/styles/clay-theme.css">
 </head>
 <body>
     <!-- Header will be loaded by header-loader.js -->
@@ -17,7 +15,7 @@
         <p class="page-subtitle">Manage creator showcases from Instagram, Twitter, and YouTube</p>
         
         <div class="add-showcase-section">
-            <h3 class="section-title">Add new creator showcase</h3>
+            <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: white;">Add New Creator Showcase</h3>
             
             <div id="errorMessage" class="error hidden"></div>
             <div id="successMessage" class="success hidden"></div>
@@ -55,7 +53,7 @@
                 <input type="url" id="postUrl" class="form-input" placeholder="Instagram: instagram.com/p/... or instagram.com/reel/... | Twitter: twitter.com/... or x.com/... | YouTube: youtube.com/watch?v=... or youtu.be/...">
             </div>
             
-            <button onclick="addShowcase()" class="btn btn-primary"><i data-lucide="plus"></i> Add showcase</button>
+            <button onclick="addShowcase()" class="btn">Add Creator Showcase</button>
         </div>
         
         <div class="controls">
@@ -66,7 +64,8 @@
                 <option value="twitter">Twitter</option>
                 <option value="youtube">YouTube</option>
             </select>
-            <button onclick="refreshShowcases()" class="btn btn-secondary btn-small"><i data-lucide="refresh-cw"></i> Refresh</button>
+            <button onclick="refreshShowcases()" class="btn btn-secondary">Refresh</button>
+            <a href="/" class="btn btn-secondary">← Back to Dashboard</a>
         </div>
         
         <div class="stats" id="statsContainer">
@@ -190,12 +189,11 @@
                         <div class="showcase-platform platform-${showcase.platform}">${showcase.platform}</div>
                     </div>
                     <div class="showcase-actions">
-                        <button onclick="viewPost('${showcase.post_url}', '${showcase.embed_post_url}')" class="btn btn-small btn-secondary"><i data-lucide="external-link"></i> View</button>
-                        <button onclick="deleteShowcase('${showcase._id}')" class="btn btn-small btn-danger"><i data-lucide="trash-2"></i> Delete</button>
+                        <button onclick="viewPost('${showcase.post_url}', '${showcase.embed_post_url}')" class="btn btn-small btn-secondary">View Post</button>
+                        <button onclick="deleteShowcase('${showcase._id}')" class="btn btn-small btn-danger">Delete</button>
                     </div>
                 </div>
             `).join('');
-            window.refreshIcons?.();
         }
         
         function renderPagination() {
@@ -266,7 +264,7 @@
                 <head>
                     <title>Embed Viewer</title>
                     <style>
-                        body { margin: 0; padding: 20px; background: #000;  font-family: Arial, sans-serif; }
+                        body { margin: 0; padding: 20px; background: #000; color: white; font-family: Arial, sans-serif; }
                         .header { margin-bottom: 20px; }
                         .embed-container { position: relative; width: 100%; height: 500px; }
                         .embed-container iframe { width: 100%; height: 100%; border: none; }
@@ -308,8 +306,10 @@
             }
             
             // Ask for password
-            const password = AdminPassword.require();
-            if (!password) return;
+            const password = prompt('Enter password to add creator showcase:');
+            if (!password) {
+                return; // User cancelled
+            }
             
             try {
                 showLoading(true);
@@ -351,16 +351,14 @@
         }
         
         async function deleteShowcase(showcaseId) {
-            const confirmed = await AdminConfirm.ask({
-                title: 'Delete showcase',
-                message: 'Are you sure you want to delete this creator showcase? <strong>This cannot be undone.</strong>',
-                confirmLabel: 'Delete',
-                destructive: true,
-            });
-            if (!confirmed) return;
-
-            const password = AdminPassword.require();
-            if (!password) return;
+            if (!confirm('Are you sure you want to delete this creator showcase?')) {
+                return;
+            }
+            
+            const password = prompt('Enter password to delete creator showcase:');
+            if (!password) {
+                return;
+            }
             
             try {
                 const response = await fetch(`/api/delete_creator_showcase/${showcaseId}`, {

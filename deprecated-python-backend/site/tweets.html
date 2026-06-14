@@ -4,17 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tweets Manager - Cluster Protocol</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;500;600;700&family=Pliant:wght@400;500;600;700&display=swap">
-    <link rel="stylesheet" href="/styles/white-theme.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="/styles/clay-theme.css">
 </head>
 <body>
     <!-- Header will be loaded by header-loader.js -->
     
     <div class="container">
         <div class="add-tweet-section">
-            <h3 class="section-title">Add new tweet</h3>
+            <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: white;">Add New Tweet</h3>
             
             <div id="errorMessage" class="error hidden"></div>
             <div id="successMessage" class="success hidden"></div>
@@ -40,11 +38,11 @@
                 </select>
             </div>
             
-            <button onclick="addTweet()" class="btn btn-primary"><i data-lucide="plus"></i> Add tweet</button>
+            <button onclick="addTweet()" class="btn">Add Tweet</button>
         </div>
         
         <div class="controls">
-            <input type="text" id="searchInput" class="search-box" placeholder="Search tweets…">
+            <input type="text" id="searchInput" class="search-box" placeholder="Search tweets by content, author, or ID...">
             <select id="typeFilter" class="form-input" style="width: auto; min-width: 200px;">
                 <option value="">All Types</option>
                 <option value="tweet">Tweets</option>
@@ -57,8 +55,9 @@
                 <option value="podcast">Podcasts</option>
                 <option value="campaign">Campaigns</option>
             </select>
-            <button onclick="refreshTweets()" class="btn btn-secondary btn-small"><i data-lucide="refresh-cw"></i> Refresh</button>
-            <button onclick="openPinManager()" class="btn btn-secondary btn-small"><i data-lucide="pin"></i> Pin manager</button>
+            <button onclick="refreshTweets()" class="btn btn-secondary">Refresh</button>
+            <button onclick="openPinManager()" class="btn btn-secondary">📌 Pin Manager</button>
+            <a href="/" class="btn btn-secondary">← Back to Dashboard</a>
         </div>
         
         <div class="stats" id="statsContainer">
@@ -98,7 +97,7 @@
     <div id="pinManagerModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h2><i data-lucide="pin"></i> Pin Manager</h2>
+                <h2>📌 Pin Manager</h2>
                 <button onclick="closePinManager()" class="modal-close">&times;</button>
             </div>
             
@@ -313,7 +312,6 @@
             tweetsGrid.style.display = 'grid';
             
             tweetsGrid.innerHTML = tweets.map(tweet => createTweetCard(tweet, false, false)).join('');
-            afterRender();
         }
         
         function renderPagination() {
@@ -423,7 +421,7 @@
             }
             
             // Ask for password
-            const password = AdminPassword.require();
+            const password = prompt('Enter password to add tweet:');
             if (!password) {
                 return; // User cancelled
             }
@@ -448,10 +446,7 @@
                 if (data.success) {
                     showSuccess('Tweet added successfully!');
                     document.getElementById('tweetUrl').value = '';
-                    currentPage = 1;
-                    typeFilter = tweetType;
-                    document.getElementById('typeFilter').value = tweetType;
-                    await loadTweets();
+                    loadTweets(); // Refresh the list
                 } else {
                     showError('Error: ' + data.message);
                 }
@@ -465,16 +460,14 @@
         }
         
         async function deleteTweet(tweetId) {
-            const confirmed = await AdminConfirm.ask({
-                title: 'Delete tweet',
-                message: 'Are you sure you want to delete this tweet? <strong>This cannot be undone.</strong>',
-                confirmLabel: 'Delete',
-                destructive: true,
-            });
-            if (!confirmed) return;
-
-            const password = AdminPassword.require();
-            if (!password) return;
+            if (!confirm('Are you sure you want to delete this tweet?')) {
+                return;
+            }
+            
+            const password = prompt('Enter password to delete tweet:');
+            if (!password) {
+                return;
+            }
             
             try {
                 const response = await fetch(`/api/delete_tweet/${tweetId}`, {
@@ -525,24 +518,6 @@
             }, 3000);
         }
         
-        // ── Helpers ──
-        function tweetStatsHtml(tweet) {
-            return `
-                <span class="tweet-stat"><i data-lucide="heart"></i> ${tweet.favorite_count || 0}</span>
-                <span class="tweet-stat"><i data-lucide="repeat-2"></i> ${tweet.retweet_count || 0}</span>
-                <span class="tweet-stat"><i data-lucide="message-circle"></i> ${tweet.reply_count || 0}</span>
-                <span class="tweet-stat"><i data-lucide="calendar"></i> ${new Date(tweet.created_at).toLocaleDateString()}</span>
-            `;
-        }
-
-        function pinBadgeHtml() {
-            return '<span class="pin-badge" title="Pinned"><i data-lucide="pin"></i></span>';
-        }
-
-        function afterRender() {
-            window.refreshIcons?.();
-        }
-
         // ==================== MODULAR TWEET CARD FUNCTIONS ====================
         
         function createTweetCard(tweet, isPinned = false, showPinActions = false, pinType = null) {
@@ -571,7 +546,7 @@
                     <div class="tweet-header">
                         <img src="${tweet.author_profile_image}" alt="${tweet.author_name}" class="tweet-avatar">
                         <div class="tweet-author">
-                            <div class="tweet-author-name">${tweet.author_name} ${isPinnedForType ? pinBadgeHtml() : ''}</div>
+                            <div class="tweet-author-name">${tweet.author_name} ${isPinnedForType ? '📌' : ''}</div>
                             <div class="tweet-author-username">@${tweet.author_username}</div>
                         </div>
                         <div class="tweet-type-badge tweet-type-${tweet.tweet_type}">${tweet.tweet_type}</div>
@@ -579,51 +554,51 @@
                     <div class="tweet-content">
                         <div class="tweet-text">${tweet.text}</div>
                         ${tweet.tweet_type === 'space' ? `
-                            ${tweet.space_title ? `<div class="space-title" class="space-title">${tweet.space_title}</div>` : ''}
+                            ${tweet.space_title ? `<div class="space-title" style="font-weight: 600; margin-bottom: 0.75rem; color: #ffffff; font-size: 1.1rem; line-height: 1.4;">${tweet.space_title}</div>` : ''}
                             
                             <div class="space-info" style="background: rgba(255, 255, 255, 0.05); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem;">
                                 ${tweet.space_state ? `
                                     <div class="space-state" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
                                         <div style="width: 8px; height: 8px; border-radius: 50%; background: ${tweet.space_state === 'Live' ? '#10b981' : tweet.space_state === 'Ended' ? '#ef4444' : '#f59e0b'};"></div>
-                                        <span class="space-state-badge">${tweet.space_state}</span>
+                                        <span style="font-size: 0.9rem; color: #a3a3a3; text-transform: uppercase; font-weight: 500;">${tweet.space_state}</span>
                                     </div>
                                 ` : ''}
                                 
                                 <div class="space-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                                     ${tweet.total_live_listeners ? `
                                         <div style="text-align: center;">
-                                            <div class="space-stat-value">${tweet.total_live_listeners.toLocaleString()}</div>
-                                            <div class="space-stat-label">Live Listeners</div>
+                                            <div style="font-size: 1.25rem; font-weight: 600; color: #ffffff;">${tweet.total_live_listeners.toLocaleString()}</div>
+                                            <div style="font-size: 0.75rem; color: #a3a3a3; text-transform: uppercase;">Live Listeners</div>
                                         </div>
                                     ` : ''}
                                     ${tweet.total_replay_watched ? `
                                         <div style="text-align: center;">
-                                            <div class="space-stat-value">${tweet.total_replay_watched.toLocaleString()}</div>
-                                            <div class="space-stat-label">Replay Views</div>
+                                            <div style="font-size: 1.25rem; font-weight: 600; color: #ffffff;">${tweet.total_replay_watched.toLocaleString()}</div>
+                                            <div style="font-size: 0.75rem; color: #a3a3a3; text-transform: uppercase;">Replay Views</div>
                                         </div>
                                     ` : ''}
                                     ${tweet.space_duration ? `
                                         <div style="text-align: center;">
-                                            <div class="space-stat-value">${formatDuration(tweet.space_duration)}</div>
-                                            <div class="space-stat-label">Duration</div>
+                                            <div style="font-size: 1.25rem; font-weight: 600; color: #ffffff;">${formatDuration(tweet.space_duration)}</div>
+                                            <div style="font-size: 0.75rem; color: #a3a3a3; text-transform: uppercase;">Duration</div>
                                         </div>
                                     ` : ''}
                                     ${tweet.space_participant_count ? `
                                         <div style="text-align: center;">
-                                            <div class="space-stat-value">${tweet.space_participant_count}</div>
-                                            <div class="space-stat-label">Participants</div>
+                                            <div style="font-size: 1.25rem; font-weight: 600; color: #ffffff;">${tweet.space_participant_count}</div>
+                                            <div style="font-size: 0.75rem; color: #a3a3a3; text-transform: uppercase;">Participants</div>
                                         </div>
                                     ` : ''}
                                 </div>
                                 
                                 ${tweet.space_speakers && tweet.space_speakers.length > 0 ? `
                                     <div class="space-participants" style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 0.75rem;">
-                                        <div class="space-section-label">Speakers (${tweet.space_speakers.length})</div>
+                                        <div style="font-size: 0.8rem; color: #a3a3a3; margin-bottom: 0.5rem; font-weight: 500; text-transform: uppercase;">Speakers (${tweet.space_speakers.length})</div>
                                         <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                                             ${tweet.space_speakers.map(speaker => `
                                                 <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.1); padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.8rem;">
                                                     ${speaker.avatar_url ? `<img src="${speaker.avatar_url}" alt="${speaker.display_name || speaker.username}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">` : ''}
-                                                    <span class="font-medium">${speaker.display_name || speaker.username || 'Unknown'}</span>
+                                                    <span style="color: #ffffff; font-weight: 500;">${speaker.display_name || speaker.username || 'Unknown'}</span>
                                                     ${speaker.is_verified ? `<span style="color: #1d9bf0;">✓</span>` : ''}
                                                 </div>
                                             `).join('')}
@@ -633,12 +608,12 @@
                                 
                                 ${tweet.space_admins && tweet.space_admins.length > 0 ? `
                                     <div class="space-admins" style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 0.75rem; margin-top: 0.75rem;">
-                                        <div class="space-section-label">Hosts (${tweet.space_admins.length})</div>
+                                        <div style="font-size: 0.8rem; color: #a3a3a3; margin-bottom: 0.5rem; font-weight: 500; text-transform: uppercase;">Hosts (${tweet.space_admins.length})</div>
                                         <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                                             ${tweet.space_admins.map(admin => `
                                                 <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(59, 130, 246, 0.2); padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.8rem;">
                                                     ${admin.avatar_url ? `<img src="${admin.avatar_url}" alt="${admin.display_name || admin.username}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">` : ''}
-                                                    <span class="font-medium">${admin.display_name || admin.username || 'Unknown'}</span>
+                                                    <span style="color: #ffffff; font-weight: 500;">${admin.display_name || admin.username || 'Unknown'}</span>
                                                     ${admin.is_verified ? `<span style="color: #1d9bf0;">✓</span>` : ''}
                                                 </div>
                                             `).join('')}
@@ -653,16 +628,21 @@
                             </div>
                         ` : ''}
                     </div>
-                    <div class="tweet-stats">${tweetStatsHtml(tweet)}</div>
+                    <div class="tweet-stats">
+                        <span>❤️ ${tweet.favorite_count || 0}</span>
+                        <span>🔄 ${tweet.retweet_count || 0}</span>
+                        <span>💬 ${tweet.reply_count || 0}</span>
+                        <span>📅 ${new Date(tweet.created_at).toLocaleDateString()}</span>
+                    </div>
                     <div class="tweet-actions">
                         ${showPinActions ? `
                             ${isPinnedForType ? 
-                                '<span class="pinned-label"><i data-lucide="check"></i> Pinned</span>' : 
-                                `<button onclick="pinTweet('${tweet.tweet_id}', '${pinType || tweet.tweet_type}')" class="btn btn-small btn-secondary"><i data-lucide="pin"></i> Pin</button>`
+                                '<span style="color: #34d399; font-size: 0.8rem;">✓ Pinned</span>' : 
+                                `<button onclick="pinTweet('${tweet.tweet_id}', '${pinType || tweet.tweet_type}')" class="btn btn-small">Pin Tweet</button>`
                             }
                         ` : `
-                            <button onclick="viewTweet('${tweet.tweet_id}')" class="btn btn-small btn-secondary"><i data-lucide="external-link"></i> View</button>
-                            <button onclick="deleteTweet('${tweet.tweet_id}')" class="btn btn-small btn-danger"><i data-lucide="trash-2"></i> Delete</button>
+                            <button onclick="viewTweet('${tweet.tweet_id}')" class="btn btn-small btn-secondary">View</button>
+                            <button onclick="deleteTweet('${tweet.tweet_id}')" class="btn btn-small btn-danger">Delete</button>
                         `}
                     </div>
                 </div>
@@ -741,7 +721,7 @@
                         <div class="tweet-header">
                             <img src="${tweet.author_profile_image}" alt="${tweet.author_name}" class="tweet-avatar">
                             <div class="tweet-author">
-                                <div class="tweet-author-name">${tweet.author_name} ${pinBadgeHtml()}</div>
+                                <div class="tweet-author-name">${tweet.author_name} 📌</div>
                                 <div class="tweet-author-username">@${tweet.author_username}</div>
                             </div>
                             <div class="tweet-type-badge tweet-type-${tweet.tweet_type}">${tweet.tweet_type}</div>
@@ -754,19 +734,23 @@
                                 </div>
                             ` : ''}
                         </div>
-                        <div class="tweet-stats">${tweetStatsHtml(tweet)}</div>
+                        <div class="tweet-stats">
+                            <span>❤️ ${tweet.favorite_count || 0}</span>
+                            <span>🔄 ${tweet.retweet_count || 0}</span>
+                            <span>💬 ${tweet.reply_count || 0}</span>
+                            <span>📅 ${new Date(tweet.created_at).toLocaleDateString()}</span>
+                        </div>
                         <div class="tweet-actions">
                             <div class="pin-index-controls" style="display: flex; align-items: center; gap: 0.5rem;">
-                                <button class="pin-index-btn" onclick="movePinIndex('${tweet.tweet_id}', ${tweet.pinned.index - 1}, '${tweet.pinned.type}')" ${isFirst ? 'disabled' : ''} aria-label="Move up"><i data-lucide="chevron-up"></i></button>
+                                <button class="pin-index-btn" onclick="movePinIndex('${tweet.tweet_id}', ${tweet.pinned.index - 1}, '${tweet.pinned.type}')" ${isFirst ? 'disabled' : ''}>↑</button>
                                 <div class="pin-index-display">${tweet.pinned.index}</div>
-                                <button class="pin-index-btn" onclick="movePinIndex('${tweet.tweet_id}', ${tweet.pinned.index + 1}, '${tweet.pinned.type}')" ${isLast ? 'disabled' : ''} aria-label="Move down"><i data-lucide="chevron-down"></i></button>
+                                <button class="pin-index-btn" onclick="movePinIndex('${tweet.tweet_id}', ${tweet.pinned.index + 1}, '${tweet.pinned.type}')" ${isLast ? 'disabled' : ''}>↓</button>
                             </div>
-                            <button onclick="unpinTweet('${tweet.tweet_id}', '${tweet.pinned.type}')" class="btn btn-small btn-danger"><i data-lucide="pin-off"></i> Unpin</button>
+                            <button onclick="unpinTweet('${tweet.tweet_id}', '${tweet.pinned.type}')" class="btn btn-small btn-danger">Unpin</button>
                         </div>
                     </div>
                 `;
             }).join('');
-            afterRender();
         }
         
         async function loadTweetsForPin() {
@@ -810,7 +794,6 @@
             container.style.gap = '1.5rem';
             
             container.innerHTML = tweets.map(tweet => createTweetCard(tweet, false, true, document.getElementById('addPinTypeSelect').value)).join('');
-            afterRender();
         }
         
         function renderPinPagination() {
@@ -864,15 +847,10 @@
         }
         
         async function pinTweet(tweetId, tweetType) {
-            const confirmed = await AdminConfirm.ask({
-                title: 'Pin tweet',
-                message: 'Pin this tweet to the featured list?',
-                confirmLabel: 'Pin',
-            });
-            if (!confirmed) return;
-
-            const password = AdminPassword.require();
-            if (!password) return;
+            const password = prompt('Enter password to pin tweet:');
+            if (!password) {
+                return;
+            }
             
             try {
                 const response = await fetch('/api/pin_manager/pin_tweet', {
@@ -904,16 +882,14 @@
         }
         
         async function unpinTweet(tweetId, tweetType) {
-            const confirmed = await AdminConfirm.ask({
-                title: 'Unpin tweet',
-                message: 'Are you sure you want to unpin this tweet?',
-                confirmLabel: 'Unpin',
-                destructive: true,
-            });
-            if (!confirmed) return;
-
-            const password = AdminPassword.require();
-            if (!password) return;
+            if (!confirm('Are you sure you want to unpin this tweet?')) {
+                return;
+            }
+            
+            const password = prompt('Enter password to unpin tweet:');
+            if (!password) {
+                return;
+            }
             
             try {
                 const response = await fetch('/api/pin_manager/unpin_tweet', {
@@ -950,7 +926,7 @@
                 return;
             }
             
-            const password = AdminPassword.require();
+            const password = prompt('Enter password to update pin index:');
             if (!password) {
                 return;
             }
@@ -984,6 +960,5 @@
             }
         }
     </script>
-    <script src="/components/header-loader.js"></script>
 </body>
 </html>

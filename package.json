@@ -1,0 +1,18 @@
+{
+  "name": "blog-backend",
+  "version": "2.0.0",
+  "description": "Cluster Protocol blog CMS and API (Express + MongoDB)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node backend-js-test/test-all-routes.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongodb": "^6.12.0"
+  }
+}

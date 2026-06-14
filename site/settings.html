@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Cluster Protocol</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;500;600;700&family=Pliant:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="/styles/white-theme.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="page-title">Settings</h1>
+        <p class="page-subtitle">Admin preferences for this browser</p>
+
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <div class="settings-card-icon">
+                    <i data-lucide="key-round"></i>
+                </div>
+                <div>
+                    <h2 class="settings-card-title">Persistent password entry</h2>
+                    <p class="settings-card-desc">Save your admin password here once. It is required to access any admin page and is used automatically for all actions.</p>
+                </div>
+            </div>
+
+            <div id="settingsMessage" class="success hidden"></div>
+
+            <div id="passwordEntrySection">
+                <div class="form-group">
+                    <label class="form-label" for="persistentPassword">Admin password</label>
+                    <input type="password" id="persistentPassword" class="form-input" placeholder="Enter admin password to remember" autocomplete="off">
+                </div>
+
+                <div class="settings-actions">
+                    <button type="button" id="savePasswordBtn" class="btn btn-primary">
+                        <i data-lucide="save"></i> Save password
+                    </button>
+                </div>
+            </div>
+
+            <div id="passwordSavedSection" class="hidden">
+                <p id="passwordStatus" class="settings-status settings-status-active">Password saved — prompts will be skipped automatically</p>
+                <div class="settings-actions">
+                    <button type="button" id="clearPasswordBtn" class="btn btn-secondary">
+                        <i data-lucide="trash-2"></i> Clear saved password
+                    </button>
+                </div>
+            </div>
+
+            <p class="form-hint settings-hint">Your password is verified before it is saved on this device.</p>
+        </div>
+    </div>
+
+    <script src="/js/admin-password.js"></script>
+    <script src="/components/header-loader.js"></script>
+    <script>
+        function updatePasswordStatus() {
+            const entrySection = document.getElementById('passwordEntrySection');
+            const savedSection = document.getElementById('passwordSavedSection');
+            const input = document.getElementById('persistentPassword');
+
+            if (AdminPassword.has() && !AdminPassword.isVerified()) {
+                AdminPassword.clear();
+            }
+
+            const saved = AdminPassword.isUnlocked();
+
+            entrySection?.classList.toggle('hidden', saved);
+            savedSection?.classList.toggle('hidden', !saved);
+
+            if (!saved && input) input.value = '';
+            window.updateSidebarLockState?.();
+        }
+
+        function showSettingsMessage(text, isError) {
+            const el = document.getElementById('settingsMessage');
+            if (!el) return;
+            el.textContent = text;
+            el.className = isError ? 'error' : 'success';
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 4000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updatePasswordStatus();
+
+            document.getElementById('savePasswordBtn')?.addEventListener('click', async () => {
+                const input = document.getElementById('persistentPassword');
+                const btn = document.getElementById('savePasswordBtn');
+                const value = input?.value.trim() || '';
+
+                if (!value) {
+                    showSettingsMessage('Enter a password to save.', true);
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = 'Verifying…';
+
+                try {
+                    const { ok, status, data } = await AdminPassword.verifyAndSave(value);
+
+                    if (status === 429) {
+                        showSettingsMessage(data.message || 'Unable to verify right now. Please try again later.', true);
+                        return;
+                    }
+
+                    if (!ok || !data.success) {
+                        showSettingsMessage(data.message || 'Wrong password. Please try again.', true);
+                        return;
+                    }
+
+                    AdminPassword.set(value);
+                    if (input) input.value = '';
+                    updatePasswordStatus();
+                    showSettingsMessage('Password verified and saved.');
+                } catch {
+                    showSettingsMessage('Could not verify password. Check your connection and try again.', true);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="save"></i> Save password';
+                    window.refreshIcons?.();
+                }
+            });
+
+            document.getElementById('clearPasswordBtn')?.addEventListener('click', async () => {
+                await AdminPassword.logoutSession();
+                AdminPassword.clear();
+                const input = document.getElementById('persistentPassword');
+                if (input) input.value = '';
+                updatePasswordStatus();
+                showSettingsMessage('Saved password cleared.');
+            });
+
+            setTimeout(() => window.refreshIcons?.(), 200);
+        });
+    </script>
+</body>
+</html>

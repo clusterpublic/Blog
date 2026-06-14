@@ -1,27 +1,45 @@
-https://us-east-1.console.aws.amazon.com/awsglobalview/home?region=us-east-1#GlobalSearch
-Here all the instances are listed
+# Cluster Protocol Blog CMS
 
+Express.js backend + admin UI for blogs, tweets, FAQs, jobs, and creator showcase.
 
-its located at blog-editor
+## Run locally
 
+```bash
+npm install
+npm run dev
+```
 
+Open **http://localhost:5001** — manager at `/manager`, editor at `/editor`.
 
+> **Note:** macOS uses port 5000 for AirPlay Receiver, so local dev defaults to **5001**. Set `PORT=8000` in `.env` if you prefer another port.
 
-cd ~/Blog
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-pip install gunicorn python-dotenv
+Environment variables live in `.env` at the repo root (see `.env.example`).
 
+## Tests
 
-gunicorn deosnt downloads with requirements
+```bash
+npm run dev          # in one terminal
+npm test             # route tests (backend-js-test/)
+```
 
+## Project layout
 
+| Path | Purpose |
+|------|---------|
+| `server.js` | Express entry point |
+| `routes/` | API route modules |
+| `config/` | MongoDB connection |
+| `utils/` | Helpers + blog cache |
+| `site/` | Admin UI (white theme) |
+| `backend-js-test/` | API route tests |
+| `deprecated-python-backend/` | Legacy Flask app (archived) |
 
-to run it (before stop the existing gunicron processes)
-(ps aux | grep gunicorn)
-(and always run it from the venv)
-nohup gunicorn --bind 0.0.0.0:8000 index:app > gunicorn.log 2>&1 &
+## Production
 
-IT RUNS WITHIN SECONDS
-IF ITS FAILS CHECK THE TRAILING LOGS
+The live API is served from this Node backend (e.g. `blog.server.clusterprotocol.ai`).
+
+The public site frontend is in [`prompt-protocol-frontend`](https://github.com/clusterprotocol/prompt-protocol-frontend) (separate repo).
+
+## Legacy Python backend
+
+See `deprecated-python-backend/README.md`. Not used for new development.

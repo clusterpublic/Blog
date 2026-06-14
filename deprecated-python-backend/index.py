@@ -10,20 +10,95 @@ import requests
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from repo root
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_BASE_DIR, '..', '.env'))
 
 # Twitter241 RapidAPI Key
 # TWITTER241_RAPIDAPI_KEY_BACKUP = "7f43a93dcemsh15f97e671454c24p1a21efjsn5220bb3fc9af"
 TWITTER241_RAPIDAPI_KEY = "7d5407919amsh0f9a6e1cfe28dbdp12189ajsn16aa00c7243f"
 
-app = Flask(__name__, template_folder='site', static_folder='assets')
+app = Flask(__name__, template_folder=os.path.join(_BASE_DIR, 'site'), static_folder=os.path.join(_BASE_DIR, 'assets'))
 CORS(app)
 def create_safe_url(blog_title):
     clean_title = re.sub(r'[^a-zA-Z0-9 \-]', '', blog_title)
     encoded_title = urllib.parse.quote(clean_title.replace(' ', '-'))
     safe_url = encoded_title.lower()
     return safe_url
+
+BLOG_STATUSES = ['draft', 'published', 'hidden']
+
+def parse_publish_date(value):
+    if value is None or value == '':
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        from datetime import datetime
+        if isinstance(value, str):
+            if value.isdigit():
+                return float(value)
+            dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+            return dt.timestamp()
+    except (ValueError, TypeError):
+        pass
+    return None
+
+def get_public_blog_filter(now=None):
+    now = now or time.time()
+    return {
+        '$and': [
+            {'$or': [{'status': {'$exists': False}}, {'status': {'$nin': ['draft', 'hidden']}}]},
+            {'$expr': {'$lte': [{'$ifNull': ['$publish_date', '$timestamp']}, now]}},
+        ]
+    }
+
+def merge_query_with_public_filter(base_query, now=None):
+    now = now or time.time()
+    public_filter = get_public_blog_filter(now)
+    if not base_query:
+        return public_filter
+    return {'$and': [base_query, public_filter]}
+
+def get_display_status(blog, now=None):
+    now = now or time.time()
+    status = blog.get('status', 'published')
+    if status == 'hidden':
+        return 'hidden'
+    if status == 'draft':
+        return 'draft'
+    publish_date = blog.get('publish_date', blog.get('timestamp', now))
+    if publish_date and publish_date > now:
+        return 'scheduled'
+    return 'published'
+
+def normalize_blog_publish_fields(data, is_new=False, now=None, existing=None):
+    now = now or time.time()
+    if data.get('status') is not None:
+        status = data.get('status', 'published')
+        if status not in BLOG_STATUSES:
+            status = 'published'
+    else:
+        status = (existing or {}).get('status', 'published')
+
+    if 'publish_date' in data:
+        publish_date = parse_publish_date(data.get('publish_date'))
+    elif existing is not None:
+        publish_date = existing.get('publish_date')
+    elif status == 'published' and is_new:
+        publish_date = now
+    else:
+        publish_date = None
+
+    return {'status': status, 'publish_date': publish_date}
+
+def validate_blog_for_publish(blog_data, status):
+    if status == 'draft' or status == 'hidden':
+        return None
+    for field in ['title', 'description', 'thumbnail', 'content']:
+        if not blog_data.get(field) or str(blog_data.get(field)).strip() == '':
+            return f'Please fill in {field} before publishing'
+    return None
 
 # MongoDB connection
 cluster_uri = 'mongodb+srv://mostuselessboy:iSyoN7VUAwcAnQL5@clusterblog.elmvpst.mongodb.net/?retryWrites=true&w=majority'
@@ -79,17 +154,31 @@ def upload_blog():
     title = request.form.get('title')
     thumbnail = request.form.get('thumbnail')
     content = request.form.get('content')
-    description = request.form.get('description')   
-    # Generate a unique blog_id
-    blog_id = str(uuid.uuid4())
+    description = request.form.get('description')
+    publish_fields = normalize_blog_publish_fields({
+        'status': request.form.get('status', 'published'),
+        'publish_date': request.form.get('publish_date'),
+    }, is_new=True)
 
-    # Create a blog entry
-    blog_entry = {
-        'blog_id': f"""{create_safe_url(title)}-{str(time.time()).split('.')[0]}""",
+    blog_data = {
         'title': title,
         'thumbnail': thumbnail,
         'content': content,
         'description': description,
+    }
+    validation_error = validate_blog_for_publish(blog_data, publish_fields['status'])
+    if validation_error:
+        return jsonify({'success': False, 'message': validation_error}), 400
+
+    # Create a blog entry
+    blog_entry = {
+        'blog_id': f"""{create_safe_url(title or 'untitled')}-{str(time.time()).split('.')[0]}""",
+        'title': title or '',
+        'thumbnail': thumbnail or '',
+        'content': content or '',
+        'description': description or '',
+        'status': publish_fields['status'],
+        'publish_date': publish_fields['publish_date'],
         'timestamp': time.time()
     }
 
@@ -98,7 +187,17 @@ def upload_blog():
     collection.insert_one(blog_entry)
 
 
-    return jsonify({'success': True, 'message': 'Blog uploaded successfully'})
+    return jsonify({
+        'success': True,
+        'message': (
+            'Blog saved as draft' if publish_fields['status'] == 'draft'
+            else 'Blog saved as hidden' if publish_fields['status'] == 'hidden'
+            else 'Blog uploaded successfully'
+        ),
+        'blog_id': blog_entry['blog_id'],
+        'status': publish_fields['status'],
+        'publish_date': publish_fields['publish_date'],
+    })
 
 
 @app.route('/api/getblogpage/<int:pagination_index>', methods=['GET'])
@@ -106,10 +205,11 @@ def get_blogs_by_page(pagination_index):
     blogs_per_page = 10
     skip_value = max(0, (pagination_index - 1) * blogs_per_page)
 
-    projection = {'title': 1, 'thumbnail': 1, 'description': 1, 'blog_id':1}
-    result = collection.find({}, projection).sort({ '_id': -1 }).skip(skip_value).limit(blogs_per_page)
+    projection = {'title': 1, 'thumbnail': 1, 'description': 1, 'blog_id': 1}
+    query = merge_query_with_public_filter({})
+    result = collection.find(query, projection).sort({ '_id': -1 }).skip(skip_value).limit(blogs_per_page)
 
-    count_documents = collection.count_documents({})
+    count_documents = collection.count_documents(query)
     has_next_page = count_documents > (skip_value + blogs_per_page)
     if count_documents > 0:
         blogs = [{k: v for k, v in x.items() if k != '_id'} for x in result]
@@ -131,7 +231,10 @@ def get_blog():
     result = collection.find_one({"blog_id": blogID})
     
     if result:
+        if result.get('status') == 'hidden':
+            return jsonify([])
         del result['_id']
+        result['display_status'] = get_display_status(result)
         return jsonify(result)
     else:
         return jsonify([])
@@ -144,6 +247,7 @@ def get_all_blogs():
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 10))
         search = request.args.get('search', '')
+        status_filter = request.args.get('status', '')
         
         # Calculate skip value
         skip = (page - 1) * per_page
@@ -158,6 +262,16 @@ def get_all_blogs():
                     {'blog_id': {'$regex': search, '$options': 'i'}}
                 ]
             }
+
+        if status_filter == 'draft':
+            query['status'] = 'draft'
+        elif status_filter == 'hidden':
+            query['status'] = 'hidden'
+        elif status_filter == 'scheduled':
+            query['status'] = {'$nin': ['draft', 'hidden']}
+            query['publish_date'] = {'$gt': time.time()}
+        elif status_filter == 'published':
+            query = merge_query_with_public_filter(query)
         
         # Get total count
         total_blogs = collection.count_documents(query)
@@ -168,12 +282,15 @@ def get_all_blogs():
             'description': 1, 
             'blog_id': 1, 
             'timestamp': 1,
-            'thumbnail': 1
+            'thumbnail': 1,
+            'status': 1,
+            'publish_date': 1,
         }).sort('timestamp', -1).skip(skip).limit(per_page))
         
         # Convert ObjectId to string for JSON serialization
         for blog in blogs:
             blog['_id'] = str(blog['_id'])
+            blog['display_status'] = get_display_status(blog)
         
         return jsonify({
             'blogs': blogs,
@@ -195,14 +312,22 @@ def update_blog(blog_id):
         if data.get('password') != 'clustertothemoon':
             return jsonify({'success': False, 'message': 'Wrong Password'}), 401
         
+        publish_fields = normalize_blog_publish_fields(data, existing=collection.find_one({'blog_id': blog_id}))
+        validation_error = validate_blog_for_publish(data, publish_fields['status'])
+        if validation_error:
+            return jsonify({'success': False, 'message': validation_error}), 400
+
         # Prepare update data
         update_data = {
             'title': data.get('title'),
             'description': data.get('description'),
             'content': data.get('content'),
             'thumbnail': data.get('thumbnail'),
+            'status': publish_fields['status'],
             'last_updated': time.time()
         }
+        if publish_fields['publish_date'] is not None:
+            update_data['publish_date'] = publish_fields['publish_date']
         
         # Remove None values
         update_data = {k: v for k, v in update_data.items() if v is not None}
@@ -216,8 +341,56 @@ def update_blog(blog_id):
         if result.matched_count == 0:
             return jsonify({'success': False, 'message': 'Blog not found'}), 404
         
-        return jsonify({'success': True, 'message': 'Blog updated successfully'})
+        return jsonify({
+            'success': True,
+            'message': 'Blog updated successfully',
+            'status': publish_fields['status'],
+            'publish_date': publish_fields['publish_date'],
+        })
         
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Update blog status / schedule
+@app.route('/api/update_blog_status/<blog_id>', methods=['PUT'])
+def update_blog_status(blog_id):
+    try:
+        data = request.get_json()
+
+        if data.get('password') != 'clustertothemoon':
+            return jsonify({'success': False, 'message': 'Wrong Password'}), 401
+
+        existing = collection.find_one({'blog_id': blog_id})
+        if not existing:
+            return jsonify({'success': False, 'message': 'Blog not found'}), 404
+
+        status = data.get('status', existing.get('status', 'published'))
+        publish_date = parse_publish_date(data.get('publish_date')) if 'publish_date' in data else existing.get('publish_date')
+
+        if status == 'published' and not publish_date:
+            publish_date = time.time()
+
+        collection.update_one(
+            {'blog_id': blog_id},
+            {'$set': {
+                'status': status,
+                'publish_date': publish_date,
+                'last_updated': time.time()
+            }}
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Blog status updated successfully',
+            'status': status,
+            'publish_date': publish_date,
+            'display_status': get_display_status({
+                'status': status,
+                'publish_date': publish_date,
+                'timestamp': existing.get('timestamp')
+            })
+        })
+
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -251,6 +424,7 @@ def get_blog_for_edit(blog_id):
         if result:
             # Convert ObjectId to string
             result['_id'] = str(result['_id'])
+            result['display_status'] = get_display_status(result)
             return jsonify({'success': True, 'blog': result})
         else:
             return jsonify({'success': False, 'message': 'Blog not found'}), 404
@@ -1595,14 +1769,17 @@ def delete_creator_showcase(showcase_id):
 @app.route('/api/prompt-protocol-data', methods=['GET'])
 def get_prompt_protocol_data():
     try:
-        # Get latest 20 blogs
-        latest_blogs = list(collection.find({}, {
-            'title': 1, 
-            'description': 1, 
-            'blog_id': 1, 
-            'timestamp': 1,
-            'thumbnail': 1
-        }).sort('timestamp', -1).limit(20))
+        # Get latest 20 publicly visible blogs
+        latest_blogs = list(collection.find(
+            merge_query_with_public_filter({}),
+            {
+                'title': 1,
+                'description': 1,
+                'blog_id': 1,
+                'timestamp': 1,
+                'thumbnail': 1
+            }
+        ).sort('timestamp', -1).limit(20))
         
         # Convert ObjectId to string for JSON serialization
         for blog in latest_blogs:
@@ -1660,7 +1837,7 @@ def get_prompt_protocol_data():
                 }
             },
             'metadata': {
-                'total_blogs': collection.count_documents({}),
+                'total_blogs': collection.count_documents(merge_query_with_public_filter({})),
                 'total_creators': creator_showcase_collection.count_documents({}),
                 'total_tweets': tweets_collection.count_documents({'tweet_type': {'$ne': 'space'}}),
                 'total_spaces': tweets_collection.count_documents({'tweet_type': 'space'}),
@@ -2630,17 +2807,17 @@ def delete_application(application_id):
 # Serve the modular header component
 @app.route('/components/header.html')
 def serve_header():
-    return send_file('site/components/header.html')
+    return send_file(os.path.join(_BASE_DIR, 'site/components/header.html'))
 
 # Serve the header loader script
 @app.route('/components/header-loader.js')
 def serve_header_loader():
-    return send_file('site/components/header-loader.js')
+    return send_file(os.path.join(_BASE_DIR, 'site/components/header-loader.js'))
 
 # Test page for header loading
 @app.route('/test-header')
 def test_header():
-    return send_file('site/test-header.html')
+    return send_file(os.path.join(_BASE_DIR, 'site/test-header.html'))
 
 # Ask Cluster AI endpoint
 @app.route('/ask-cluster-ai', methods=['POST'])

@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Job Manager - Cluster Protocol</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;500;600;700&family=Pliant:wght@400;500;600;700&display=swap">
-    <link rel="stylesheet" href="/styles/white-theme.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="/styles/clay-theme.css">
 </head>
 <body>
     <!-- Header will be loaded by header-loader.js -->
@@ -18,8 +16,8 @@
 
         <!-- Tab Navigation -->
         <div class="tab-navigation">
-            <button class="tab-btn active" onclick="switchTab('jobs')"><i data-lucide="briefcase"></i> Jobs</button>
-            <button class="tab-btn" onclick="switchTab('applications')"><i data-lucide="inbox"></i> Applications</button>
+            <button class="tab-btn active" onclick="switchTab('jobs')">Jobs</button>
+            <button class="tab-btn" onclick="switchTab('applications')">Applications</button>
         </div>
 
         <!-- Jobs Tab Content -->
@@ -46,7 +44,7 @@
                         <option value="sales">Sales</option>
                     </select>
                 </div>
-                <button class="btn btn-primary" onclick="openCreateModal()"><i data-lucide="plus"></i> Create job</button>
+                <button class="btn" onclick="openCreateModal()">Create New Job</button>
             </div>
 
             <div id="jobContainer">
@@ -87,7 +85,7 @@
                         <!-- Job options will be loaded dynamically -->
                     </select>
                 </div>
-                <button class="btn btn-secondary btn-small" onclick="loadApplications()"><i data-lucide="refresh-cw"></i> Refresh</button>
+                <button class="btn btn-secondary" onclick="loadApplications()">Refresh Applications</button>
             </div>
 
             <div id="applicationContainer">
@@ -163,9 +161,14 @@
                     </label>
                 </div>
                 
+                <div class="form-group">
+                    <label class="form-label" for="jobPassword">Password</label>
+                    <input type="password" class="form-input" id="jobPassword" required placeholder="Enter admin password">
+                </div>
+                
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()"><i data-lucide="x"></i> Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn"><i data-lucide="plus"></i> Create job</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn" id="submitBtn">Create Job</button>
                 </div>
             </form>
         </div>
@@ -176,7 +179,6 @@
         let currentPage = 1;
         let totalPages = 1;
         let currentJobId = null;
-        let allJobs = [];
         let searchTimeout;
         
         // Application-related variables
@@ -290,30 +292,27 @@
             } catch (error) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon"><i data-lucide="alert-circle"></i></div>
-                        <div class="empty-state-title">Error loading jobs</div>
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-title">Error Loading Jobs</div>
                         <div class="empty-state-text">${error.message}</div>
-                        <button class="btn btn-primary" onclick="loadJobs()"><i data-lucide="refresh-cw"></i> Retry</button>
+                        <button class="btn btn-primary" onclick="loadJobs()">Retry</button>
                     </div>
                 `;
-                window.refreshIcons?.();
             }
         }
 
         function displayJobs(jobs) {
             const container = document.getElementById('jobContainer');
-            allJobs = jobs;
             
             if (jobs.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon"><i data-lucide="briefcase"></i></div>
-                        <div class="empty-state-title">No jobs found</div>
-                        <div class="empty-state-text">Create your first job posting to get started.</div>
-                        <button class="btn btn-primary" onclick="openCreateModal()"><i data-lucide="plus"></i> Create job</button>
+                        <div class="empty-state-icon">💼</div>
+                        <div class="empty-state-title">No Jobs Found</div>
+                        <div class="empty-state-text">Create your first job posting to get started</div>
+                        <button class="btn btn-primary" onclick="openCreateModal()">Create Job</button>
                     </div>
                 `;
-                window.refreshIcons?.();
                 return;
             }
 
@@ -322,11 +321,11 @@
                     <div class="job-header">
                         <h3 class="job-title">${escapeHtml(job.role_name)}</h3>
                         <div class="job-actions">
-                            <button class="btn btn-secondary btn-small" onclick="editJob('${job._id}')"><i data-lucide="pencil"></i> Edit</button>
+                            <button class="btn btn-secondary btn-small" onclick="editJob('${job._id}')">Edit</button>
                             <button class="btn btn-small ${job.is_active ? 'btn-danger' : 'btn-success'}" onclick="toggleJobStatus('${job._id}', ${job.is_active})">
-                                <i data-lucide="${job.is_active ? 'pause-circle' : 'play-circle'}"></i> ${job.is_active ? 'Deactivate' : 'Activate'}
+                                ${job.is_active ? 'Deactivate' : 'Activate'}
                             </button>
-                            <button class="btn btn-danger btn-small" onclick="deleteJob('${job._id}')"><i data-lucide="trash-2"></i> Delete</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteJob('${job._id}')">Delete</button>
                         </div>
                     </div>
                     
@@ -347,7 +346,6 @@
             `).join('');
 
             container.innerHTML = `<div class="job-grid">${jobHTML}</div>`;
-            window.refreshIcons?.();
         }
 
         function updatePagination(page, totalPagesParam) {
@@ -397,125 +395,99 @@
             }
         }
 
-        function setSubmitBtn(mode) {
-            const btn = document.getElementById('submitBtn');
-            if (mode === 'create') btn.innerHTML = '<i data-lucide="plus"></i> Create job';
-            else if (mode === 'update') btn.innerHTML = '<i data-lucide="save"></i> Update job';
-            else if (mode === 'saving') btn.textContent = 'Saving…';
-            window.refreshIcons?.();
-        }
-
         function openCreateModal() {
             currentJobId = null;
-            document.getElementById('modalTitle').textContent = 'Create job';
-            setSubmitBtn('create');
+            document.getElementById('modalTitle').textContent = 'Create Job';
+            document.getElementById('submitBtn').textContent = 'Create Job';
             document.getElementById('jobForm').reset();
             document.getElementById('jobIsActive').checked = true;
-            document.getElementById('jobModal').classList.add('open');
-        }
-
-        function populateJobForm(job) {
-            document.getElementById('jobRoleName').value = job.role_name || '';
-            document.getElementById('jobLocation').value = job.location || '';
-            document.getElementById('jobType').value = job.type || '';
-            document.getElementById('jobRoleCategory').value = job.role_category || '';
-            document.getElementById('jobDescription').value = job.description || '';
-            document.getElementById('jobIsActive').checked = job.is_active !== false;
+            document.getElementById('jobModal').classList.add('show');
         }
 
         function editJob(jobId) {
             currentJobId = jobId;
-            document.getElementById('modalTitle').textContent = 'Edit job';
-            setSubmitBtn('update');
-
-            const cached = allJobs.find((j) => j._id === jobId);
-            if (cached) {
-                populateJobForm(cached);
-                document.getElementById('jobModal').classList.add('open');
-                return;
-            }
-
+            document.getElementById('modalTitle').textContent = 'Edit Job';
+            document.getElementById('submitBtn').textContent = 'Update Job';
+            
+            // Fetch job data
             fetch(`/api/job/${jobId}`)
-                .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
-                .then(({ ok, data }) => {
-                    if (!ok || !data.role_name) {
-                        throw new Error(data.error || 'Failed to load job');
+                .then(response => response.json())
+                .then(data => {
+                    if (data.role_name) {
+                        document.getElementById('jobRoleName').value = data.role_name;
+                        document.getElementById('jobLocation').value = data.location;
+                        document.getElementById('jobType').value = data.type;
+                        document.getElementById('jobRoleCategory').value = data.role_category;
+                        document.getElementById('jobDescription').value = data.description;
+                        document.getElementById('jobIsActive').checked = data.is_active;
+                        document.getElementById('jobModal').classList.add('show');
                     }
-                    populateJobForm(data);
-                    document.getElementById('jobModal').classList.add('open');
                 })
-                .catch((error) => {
+                .catch(error => {
                     alert('Error loading job: ' + error.message);
                 });
         }
 
         function toggleJobStatus(jobId, currentStatus) {
+            const password = prompt('Enter admin password to update job status:');
+            if (!password) return;
+            
             const newStatus = !currentStatus;
             const action = newStatus ? 'activate' : 'deactivate';
-
-            AdminConfirm.ask({
-                title: newStatus ? 'Activate job' : 'Deactivate job',
-                message: `Are you sure you want to ${action} this job posting?`,
-                confirmLabel: newStatus ? 'Activate' : 'Deactivate',
-                destructive: !newStatus,
-            }).then((confirmed) => {
-                if (!confirmed) return;
-
-                const password = AdminPassword.require();
-                if (!password) return;
-
+            
+            if (confirm(`Are you sure you want to ${action} this job?`)) {
                 fetch(`/api/job/${jobId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ is_active: newStatus, password: password }),
-                })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        if (data.success) {
-                            loadJobs();
-                        } else {
-                            alert('Error updating job: ' + (data.message || data.error));
-                        }
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        is_active: newStatus,
+                        password: password
                     })
-                    .catch((error) => {
-                        alert('Error updating job: ' + error.message);
-                    });
-            });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadJobs();
+                    } else {
+                        alert('Error updating job: ' + (data.message || data.error));
+                    }
+                })
+                .catch(error => {
+                    alert('Error updating job: ' + error.message);
+                });
+            }
         }
 
         function deleteJob(jobId) {
-            AdminConfirm.ask({
-                title: 'Delete job',
-                message: 'Are you sure you want to delete this job? <strong>This cannot be undone.</strong>',
-                confirmLabel: 'Delete',
-                destructive: true,
-            }).then((confirmed) => {
-                if (!confirmed) return;
-
-                const password = AdminPassword.require();
-                if (!password) return;
-
+            const password = prompt('Enter admin password to delete job:');
+            if (!password) return;
+            
+            if (confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
                 fetch(`/api/job/${jobId}`, {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: password }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password })
                 })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        if (data.success) {
-                            loadJobs();
-                        } else {
-                            alert('Error deleting job: ' + (data.message || data.error));
-                        }
-                    })
-                    .catch((error) => {
-                        alert('Error deleting job: ' + error.message);
-                    });
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadJobs();
+                    } else {
+                        alert('Error deleting job: ' + (data.message || data.error));
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting job: ' + error.message);
+                });
+            }
         }
 
         function closeModal() {
-            document.getElementById('jobModal').classList.remove('open');
+            document.getElementById('jobModal').classList.remove('show');
         }
 
         document.getElementById('jobForm').addEventListener('submit', async function(e) {
@@ -527,12 +499,11 @@
             const roleCategory = document.getElementById('jobRoleCategory').value;
             const description = document.getElementById('jobDescription').value;
             const isActive = document.getElementById('jobIsActive').checked;
-            const password = AdminPassword.require();
-            if (!password) return;
+            const password = document.getElementById('jobPassword').value;
             const submitBtn = document.getElementById('submitBtn');
             
             submitBtn.disabled = true;
-            setSubmitBtn('saving');
+            submitBtn.textContent = 'Saving...';
 
             try {
                 const url = currentJobId ? `/api/job/${currentJobId}` : '/api/job';
@@ -566,7 +537,7 @@
                 alert('Error saving job: ' + error.message);
             } finally {
                 submitBtn.disabled = false;
-                setSubmitBtn(currentJobId ? 'update' : 'create');
+                submitBtn.textContent = currentJobId ? 'Update Job' : 'Create Job';
             }
         });
 
@@ -636,13 +607,12 @@
             } catch (error) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon"><i data-lucide="alert-circle"></i></div>
-                        <div class="empty-state-title">Error loading applications</div>
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-title">Error Loading Applications</div>
                         <div class="empty-state-text">${error.message}</div>
-                        <button class="btn btn-primary" onclick="loadApplications()"><i data-lucide="refresh-cw"></i> Retry</button>
+                        <button class="btn btn-primary" onclick="loadApplications()">Retry</button>
                     </div>
                 `;
-                window.refreshIcons?.();
             }
         }
 
@@ -652,56 +622,58 @@
             if (applications.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon"><i data-lucide="inbox"></i></div>
-                        <div class="empty-state-title">No applications found</div>
-                        <div class="empty-state-text">No job applications match your current filters.</div>
-                        <button class="btn btn-secondary" onclick="loadApplications()"><i data-lucide="refresh-cw"></i> Refresh</button>
+                        <div class="empty-state-icon">📝</div>
+                        <div class="empty-state-title">No Applications Found</div>
+                        <div class="empty-state-text">No job applications match your current filters</div>
+                        <button class="btn btn-secondary" onclick="loadApplications()">Refresh</button>
                     </div>
                 `;
-                window.refreshIcons?.();
                 return;
             }
 
             const applicationHTML = applications.map(app => `
-                <article class="application-card">
+                <div class="application-card">
                     <div class="application-header">
-                        <div class="application-identity">
+                        <div>
                             <h3 class="application-name">${escapeHtml(app.fullName)}</h3>
-                            <p class="application-email">${escapeHtml(app.email)}</p>
+                            <div class="application-email">${escapeHtml(app.email)}</div>
+                            ${app.jobDetails ? `
+                                <div class="job-info" style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(59, 130, 246, 0.1); border-radius: 0.5rem; border-left: 3px solid #3b82f6;">
+                                    <div style="font-weight: 600; color: #60a5fa; margin-bottom: 0.25rem;">
+                                        📋 Applied for: ${escapeHtml(app.jobDetails.role_name)}
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: #a3a3a3;">
+                                        ${escapeHtml(app.jobDetails.location)} • ${escapeHtml(app.jobDetails.type)} • ${escapeHtml(app.jobDetails.role_category)}
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                         <div class="application-actions">
-                            <button class="btn btn-secondary btn-small" onclick="updateApplicationStatus('${app._id}', '${app.status}')"><i data-lucide="refresh-cw"></i> Status</button>
-                            <button class="btn btn-small btn-ghost btn-icon btn-danger-ghost" onclick="deleteApplication('${app._id}')" title="Delete"><i data-lucide="trash-2"></i></button>
+                            <button class="btn btn-secondary btn-small" onclick="updateApplicationStatus('${app._id}', '${app.status}')">Update Status</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteApplication('${app._id}')">Delete</button>
                         </div>
                     </div>
-                    ${app.jobDetails ? `
-                        <div class="application-job-callout">
-                            <span class="callout-icon"><i data-lucide="briefcase"></i></span>
-                            <div class="callout-body">
-                                <strong>${escapeHtml(app.jobDetails.role_name)}</strong>
-                                <span>${escapeHtml(app.jobDetails.location)} · ${escapeHtml(app.jobDetails.type)} · ${escapeHtml(app.jobDetails.role_category)}</span>
-                            </div>
-                        </div>
-                    ` : ''}
+                    
                     <div class="application-meta">
-                        <span class="job-badge">${capitalizeFirst(app.educationLevel)}</span>
-                        <span class="job-badge">${app.yearsExperience} years exp.</span>
-                        <span class="job-badge badge-status-${app.status}">${capitalizeFirst(app.status)}</span>
+                        <span class="job-badge badge-education">${capitalizeFirst(app.educationLevel)}</span>
+                        <span class="job-badge badge-experience">${app.yearsExperience} years</span>
+                        <span class="job-badge badge-status">${capitalizeFirst(app.status)}</span>
                     </div>
+                    
                     <div class="application-links">
-                        <a href="${escapeHtml(app.resumeUrl)}" target="_blank" rel="noopener" class="application-link"><i data-lucide="file-text"></i> Resume</a>
-                        ${app.linkedinUrl ? `<a href="${escapeHtml(app.linkedinUrl)}" target="_blank" rel="noopener" class="application-link"><i data-lucide="linkedin"></i> LinkedIn</a>` : ''}
-                        ${app.twitterUrl ? `<a href="${escapeHtml(app.twitterUrl)}" target="_blank" rel="noopener" class="application-link"><i data-lucide="twitter"></i> Twitter</a>` : ''}
+                        <a href="${escapeHtml(app.resumeUrl)}" target="_blank" class="application-link">📄 Resume</a>
+                        ${app.linkedinUrl ? `<a href="${escapeHtml(app.linkedinUrl)}" target="_blank" class="application-link">💼 LinkedIn</a>` : ''}
+                        ${app.twitterUrl ? `<a href="${escapeHtml(app.twitterUrl)}" target="_blank" class="application-link">🐦 Twitter</a>` : ''}
                     </div>
-                    <footer class="application-footer">
-                        <span>Applied ${new Date(app.submitted_at).toLocaleDateString()}</span>
-                        <span class="application-id" title="${app._id}">${app._id.slice(-8)}</span>
-                    </footer>
-                </article>
+                    
+                    <div class="application-footer">
+                        <span>Applied: ${new Date(app.submitted_at).toLocaleDateString()}</span>
+                        <span>ID: ${app._id}</span>
+                    </div>
+                </div>
             `).join('');
 
             container.innerHTML = `<div class="job-grid">${applicationHTML}</div>`;
-            window.refreshIcons?.();
         }
 
         function updateApplicationPagination(page, totalPagesParam) {
@@ -754,74 +726,65 @@
         function updateApplicationStatus(applicationId, currentStatus) {
             const newStatus = prompt(`Current status: ${currentStatus}\n\nEnter new status (submitted, reviewed, accepted, rejected):`);
             if (!newStatus || newStatus === currentStatus) return;
-
+            
             const validStatuses = ['submitted', 'reviewed', 'accepted', 'rejected'];
             if (!validStatuses.includes(newStatus.toLowerCase())) {
                 alert('Invalid status. Must be one of: submitted, reviewed, accepted, rejected');
                 return;
             }
-
-            AdminConfirm.ask({
-                title: 'Update application status',
-                message: `Change status from <strong>${escapeHtml(currentStatus)}</strong> to <strong>${escapeHtml(newStatus.toLowerCase())}</strong>?`,
-                confirmLabel: 'Update',
-            }).then((confirmed) => {
-                if (!confirmed) return;
-
-                const password = AdminPassword.require();
-                if (!password) return;
-
+            
+            const password = prompt('Enter admin password to update application status:');
+            if (!password) return;
+            
+            if (confirm(`Are you sure you want to update the status to "${newStatus}"?`)) {
                 fetch(`/api/admin/application/${applicationId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({
                         status: newStatus.toLowerCase(),
-                        password: password,
-                    }),
-                })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        if (data.success) {
-                            loadApplications();
-                        } else {
-                            alert('Error updating application: ' + (data.message || data.error));
-                        }
+                        password: password
                     })
-                    .catch((error) => {
-                        alert('Error updating application: ' + error.message);
-                    });
-            });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadApplications();
+                    } else {
+                        alert('Error updating application: ' + (data.message || data.error));
+                    }
+                })
+                .catch(error => {
+                    alert('Error updating application: ' + error.message);
+                });
+            }
         }
 
         function deleteApplication(applicationId) {
-            AdminConfirm.ask({
-                title: 'Delete application',
-                message: 'Are you sure you want to delete this application? <strong>This cannot be undone.</strong>',
-                confirmLabel: 'Delete',
-                destructive: true,
-            }).then((confirmed) => {
-                if (!confirmed) return;
-
-                const password = AdminPassword.require();
-                if (!password) return;
-
+            const password = prompt('Enter admin password to delete application:');
+            if (!password) return;
+            
+            if (confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
                 fetch(`/api/admin/application/${applicationId}`, {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: password }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password })
                 })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        if (data.success) {
-                            loadApplications();
-                        } else {
-                            alert('Error deleting application: ' + (data.message || data.error));
-                        }
-                    })
-                    .catch((error) => {
-                        alert('Error deleting application: ' + error.message);
-                    });
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadApplications();
+                    } else {
+                        alert('Error deleting application: ' + (data.message || data.error));
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting application: ' + error.message);
+                });
+            }
         }
 
         function capitalizeFirst(str) {

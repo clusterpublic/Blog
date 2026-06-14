@@ -1,0 +1,10 @@
+{
+  "name": "blog-backend-js-test",
+  "version": "1.0.0",
+  "description": "Route tests for the Express.js blog backend",
+  "type": "module",
+  "scripts": {
+    "test": "node test-all-routes.js",
+    "test:url": "node test-url-parsing.js"
+  }
+}
