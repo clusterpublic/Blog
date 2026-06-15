@@ -20,13 +20,9 @@ export function invalidateBlogCache() {
   }
 }
 
-export async function getOrSetBlogCache(key, fetchFresh) {
-  const cached = getBlogCache(key);
-  if (cached !== undefined) {
-    return { data: cached, hit: true };
-  }
+// Temporarily disabled — always fetch fresh from DB.
+export async function getOrSetBlogCache(_key, fetchFresh) {
   const data = await fetchFresh();
-  setBlogCache(key, data);
   return { data, hit: false };
 }
 

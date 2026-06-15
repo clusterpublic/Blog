@@ -54,3 +54,8 @@ instance at https://ap-south-1.console.aws.amazon.com/ec2/home?region=ap-south-1
 
 PORT=8000 pm2 start server.js --name blog-backend
 (env is manaully set)
+
+
+
+
+online url : https://blog.server.clusterprotocol.ai/
