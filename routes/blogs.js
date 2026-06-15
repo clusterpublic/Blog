@@ -112,9 +112,10 @@ router.get('/api/blog', async (req, res) => {
     const { blogs } = getCollections();
     const result = await blogs.findOne({ blog_id: blogID });
     if (result) {
-      if (result.status === 'hidden') return [];
+      const displayStatus = getDisplayStatus(result);
+      if (displayStatus !== 'published') return [];
       const blog = stripMongoId(result);
-      blog.display_status = getDisplayStatus(result);
+      blog.display_status = displayStatus;
       return blog;
     }
     return [];
