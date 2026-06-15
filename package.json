@@ -7,7 +7,14 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node backend-js-test/test-all-routes.js"
+    "test": "node backend-js-test/test-all-routes.js",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:start:prod": "pm2 start ecosystem.config.cjs --env production",
+    "pm2:stop": "pm2 stop blog-backend",
+    "pm2:restart": "pm2 restart blog-backend",
+    "pm2:delete": "pm2 delete blog-backend",
+    "pm2:logs": "pm2 logs blog-backend",
+    "pm2:status": "pm2 status blog-backend"
   },
   "dependencies": {
     "cors": "^2.8.5",
